@@ -1,4 +1,3 @@
-import requests
 import logging
 from telegram import Update
 from telegram.ext import (
@@ -6,7 +5,9 @@ from telegram.ext import (
     ApplicationBuilder,
     ContextTypes,
     CommandHandler,
+    ConversationHandler,
     MessageHandler)
+from handleQuestion import *
 
 #configs basic logging
 logging.basicConfig(
@@ -34,15 +35,24 @@ async def handlerUnknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text="Sorry, I didn't understand that command.")
 
 if __name__ == '__main__':
-    application = ApplicationBuilder().token('8131399573:AAGYyedk735WuHa7SRcoxiKGx4lChQ7-0Vk').build()
+    #replace TOKEN with telegram bot token
+    application = ApplicationBuilder().token('TOKEN').build()
 
     #initialise the commands
     start_handler = CommandHandler('start', handlerStart)
     unknown_handler = MessageHandler(filters.COMMAND, handlerUnknown)
-    #question_handler = CommandHandler('questions', handlerQuestions)
+    question_handler = ConversationHandler(
+        entry_points=[CommandHandler('questions', handlerQuestionStart)],
+        states={
+            QUESTION_START: [MessageHandler(filters.TEXT & ~filters.COMMAND, handlerQuestionAskSeller),
+                             CommandHandler('FAQ', handlerQuestionShowFAQ)]
 
+        },
+        fallbacks=[CommandHandler('cancel', handlerQuestionFallback)]
+    )
     #add commands
     application.add_handler(start_handler)
+    application.add_handler(question_handler)
 
     #default commands (do not put unknown_handler above other handlers)
     application.add_handler(unknown_handler)
