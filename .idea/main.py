@@ -9,6 +9,9 @@ from telegram.ext import (
     MessageHandler)
 from handleQuestion import *
 
+#insert telegram token here
+TELEGRAM_TOKEN = ''
+
 #configs basic logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -35,8 +38,7 @@ async def handlerUnknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text="Sorry, I didn't understand that command.")
 
 if __name__ == '__main__':
-    #replace TOKEN with telegram bot token
-    application = ApplicationBuilder().token('TOKEN').build()
+    application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 
     #initialise the commands
     start_handler = CommandHandler('start', handlerStart)

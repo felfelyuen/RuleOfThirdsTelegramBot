@@ -26,7 +26,8 @@ async def handlerQuestionShowFAQ(update:Update, context: ContextTypes.DEFAULT_TY
     """
     await context.bot.send_message(
         chat_id = update.effective_chat.id,
-        text="***INSERT FAQ***"
+        text="Please visit the link below for the FAQ!\n" +
+             "https://docs.google.com/document/d/1v4ofc_tfiPyNuJWW-iOHLFUolAb5srZfnWqnke90Qlk/edit?tab=t.vhga5eeqazd4"
     )
     return ConversationHandler.END
 
