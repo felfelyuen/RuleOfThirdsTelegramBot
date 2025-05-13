@@ -47,14 +47,18 @@ if __name__ == '__main__':
         entry_points=[CommandHandler('questions', handlerQuestionStart)],
         states={
             QUESTION_START: [MessageHandler(filters.TEXT & ~filters.COMMAND, handlerQuestionAskSeller),
-                             CommandHandler('FAQ', handlerQuestionShowFAQ)]
+                             CommandHandler('FAQ', handlerQuestionShowFAQ),
+                             CommandHandler('cancel', handlerQuestionFallback)]
 
         },
         fallbacks=[CommandHandler('cancel', handlerQuestionFallback)]
     )
+    FAQ_handler = CommandHandler('FAQ', handlerQuestionShowFAQ)
+
     #add commands
     application.add_handler(start_handler)
     application.add_handler(question_handler)
+    application.add_handler(FAQ_handler)
 
     #default commands (do not put unknown_handler above other handlers)
     application.add_handler(unknown_handler)
