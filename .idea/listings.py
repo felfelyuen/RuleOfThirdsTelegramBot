@@ -9,6 +9,7 @@ from telegram.ext import (
     ConversationHandler,
     MessageHandler)
 from camera import Camera
+from purchase_info import PurchaseInfo
 
 def setUpTestListings():
     #listings = []
@@ -22,7 +23,8 @@ def setUpTestListings():
 
 listings = setUpTestListings()
 
-LISTING_START, LISTING_BUYING, LISTING_CHOSEN = range(3)
+
+LISTING_START, LISTING_CHOSEN, LISTING_AFTERCHOSEN, LISTING_BUYING_CHARM = range(4)
 
 async def handlerListingStart(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
@@ -44,7 +46,7 @@ async def handlerListingStart(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="Here is the catalogue! Click on any button to view the camera and buy!",
+        text="Here is the catalogue! Click on any button to view the camera and buy!\n Use /cancel to exit the catalogue",
         reply_markup=reply_markup)
 
     return LISTING_CHOSEN
@@ -52,35 +54,49 @@ async def handlerListingStart(update: Update, context: ContextTypes.DEFAULT_TYPE
 async def handlerListingChoosing(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Parses the CallbackQuery and updates the message text."""
     query = update.callback_query
-
-    # CallbackQueries need to be answered, even if no notification to the user is needed
-    # Some clients may have trouble otherwise. See https://core.telegram.org/bots/api#callbackquery
     await query.answer()
-    camera_name = query.data
-    if (camera_name == "buy"):
-        return LISTING_CHOSEN
-    if (camera_name == "cancel"):
-        return LISTING_CHOSEN
-    camera_message = ""
+
     global listings
     camera_message = listings[int(query.data)].message
 
     new_keyboard = [[InlineKeyboardButton("Buy!", callback_data="buy"),
                      InlineKeyboardButton("Cancel", callback_data="cancel")]]
     await query.edit_message_text(text=camera_message, reply_markup=InlineKeyboardMarkup(new_keyboard))
-    return LISTING_CHOSEN
+    return LISTING_AFTERCHOSEN
     # await query.edit_message_reply_markup(reply_markup=new_keyboard)
 
-async def handlerListingBuying (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text="buying..."
+async def handlerListingBuying_ChooseCharm (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+
+    charm_keyboard = [[InlineKeyboardButton("Plain", callback_data="plain"),
+                       InlineKeyboardButton("Beaded", callback_data="beaded")]]
+    await query.edit_message_text(
+        text="Thank you for your interest!\n" 
+             "Please fill in the following!\n" 
+             "Wrist strap variation?\n "
+             "Use /cancel at any time to stop the procedure"
+        , reply_markup=InlineKeyboardMarkup(charm_keyboard)
+    )
+    return LISTING_BUYING_CHARM
+
+async def handlerListingBuying_ChooseAddOns (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+
+    addon_keyboard = [[InlineKeyboardButton("Yes (lightning cable)", callback_data=query.data + "lightning"),
+                       InlineKeyboardButton("Yes(type C cable)", callback_data=query.data + "type C"),
+                       InlineKeyboardButton("No", callback_data=query.data + "no")]]
+    await query.edit_message_text(
+        text="Next, would you like a SD card reader? (additional $5)\n"
+            "Use /cancel at any time to stop the procedure"
+        , reply_markup=InlineKeyboardMarkup(addon_keyboard)
     )
     return ConversationHandler.END
 
 async def handlerListingFallback (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="exiting..."
+        text="Exited Catalogue mode"
     )
     return ConversationHandler.END

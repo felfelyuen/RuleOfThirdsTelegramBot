@@ -50,8 +50,7 @@ if __name__ == '__main__':
         entry_points=[CommandHandler('questions', handlerQuestionStart)],
         states={
             QUESTION_START: [MessageHandler(filters.TEXT & ~filters.COMMAND, handlerQuestionAskSeller),
-                             CommandHandler('FAQ', handlerQuestionShowFAQ),
-                             CommandHandler('cancel', handlerQuestionFallback)]
+                             CommandHandler('FAQ', handlerQuestionShowFAQ)]
 
         },
         fallbacks=[CommandHandler('cancel', handlerQuestionFallback)]
@@ -63,20 +62,21 @@ if __name__ == '__main__':
         states={
             #LISTING_START: [CallbackQueryHandler(handlerListingStart, pattern="^cancel$")],
             #LISTING_BUYING: [CallbackQueryHandler(handlerListingBuying, pattern ="^buy$")],
-            LISTING_CHOSEN: [CallbackQueryHandler(handlerListingStart, pattern="^cancel$"),
-                             CallbackQueryHandler(handlerListingBuying, pattern ="^buy$"),
-                             CallbackQueryHandler(handlerListingChoosing)]
+            LISTING_CHOSEN: [#CallbackQueryHandler(handlerListingStart, pattern="^cancel$"),
+                             #CallbackQueryHandler(handlerListingBuying, pattern ="^buy$"),
+                             CallbackQueryHandler(handlerListingChoosing)],
+            LISTING_AFTERCHOSEN: [CallbackQueryHandler(handlerListingStart, pattern="^cancel$"),
+                                  CallbackQueryHandler(handlerListingBuying_ChooseCharm, pattern ="^buy$")],
+            LISTING_BUYING_CHARM: [CallbackQueryHandler(handlerListingBuying_ChooseAddOns)]
         },
-        fallbacks=[CommandHandler('cancel', handlerListingFallback)],
+        fallbacks=[CommandHandler('cancel', handlerListingFallback)]
     )
-    #buttoner = CallbackQueryHandler(button)
 
     #add commands
     application.add_handler(start_handler)
     application.add_handler(question_handler)
     application.add_handler(FAQ_handler)
     application.add_handler(listing_handler)
-    #application.add_handler(buttoner)
 
 
     #default commands (do not put unknown_handler above other handlers)
