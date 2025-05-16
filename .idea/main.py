@@ -67,7 +67,8 @@ if __name__ == '__main__':
                              CallbackQueryHandler(handlerListingChoosing)],
             LISTING_AFTERCHOSEN: [CallbackQueryHandler(handlerListingStart, pattern="^cancel$"),
                                   CallbackQueryHandler(handlerListingBuying_ChooseCharm, pattern ="^buy$")],
-            LISTING_BUYING_CHARM: [CallbackQueryHandler(handlerListingBuying_ChooseAddOns)]
+            LISTING_BUYING_ADDON: [CallbackQueryHandler(handlerListingBuying_ChooseAddOns)],
+            LISTING_BUYING_PAYMENT: [CallbackQueryHandler(handlerListingBuying_Payment)]
         },
         fallbacks=[CommandHandler('cancel', handlerListingFallback)]
     )

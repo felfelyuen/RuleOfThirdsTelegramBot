@@ -24,7 +24,7 @@ def setUpTestListings():
 listings = setUpTestListings()
 
 
-LISTING_START, LISTING_CHOSEN, LISTING_AFTERCHOSEN, LISTING_BUYING_CHARM = range(4)
+LISTING_START, LISTING_CHOSEN, LISTING_AFTERCHOSEN, LISTING_BUYING_ADDON, LISTING_BUYING_PAYMENT = range(5)
 
 async def handlerListingStart(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
@@ -78,19 +78,30 @@ async def handlerListingBuying_ChooseCharm (update: Update, context: ContextType
              "Use /cancel at any time to stop the procedure"
         , reply_markup=InlineKeyboardMarkup(charm_keyboard)
     )
-    return LISTING_BUYING_CHARM
+    return LISTING_BUYING_ADDON
 
 async def handlerListingBuying_ChooseAddOns (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
     await query.answer()
 
-    addon_keyboard = [[InlineKeyboardButton("Yes (lightning cable)", callback_data=query.data + "lightning"),
-                       InlineKeyboardButton("Yes(type C cable)", callback_data=query.data + "type C"),
-                       InlineKeyboardButton("No", callback_data=query.data + "no")]]
+    addon_keyboard = [[InlineKeyboardButton("Yes (lightning cable)", callback_data=query.data + " lightning"),
+                       InlineKeyboardButton("Yes(type C cable)", callback_data=query.data + " type C"),
+                       InlineKeyboardButton("No", callback_data=query.data + " no")]]
     await query.edit_message_text(
         text="Next, would you like a SD card reader? (additional $5)\n"
             "Use /cancel at any time to stop the procedure"
         , reply_markup=InlineKeyboardMarkup(addon_keyboard)
+    )
+    return LISTING_BUYING_PAYMENT
+
+async def handlerListingBuying_Payment (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+
+    #delivery details to be worked out in v1.1
+
+    await query.edit_message_text(
+        text="END OF CONVO (V1.0) (" + query.data + ")"
     )
     return ConversationHandler.END
 
