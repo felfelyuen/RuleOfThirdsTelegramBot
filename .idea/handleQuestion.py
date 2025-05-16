@@ -17,7 +17,7 @@ async def handlerQuestionStart(update: Update, context: ContextTypes.DEFAULT_TYP
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="Type /FAQ to view our frequently asked questions, or type in your question, and our sellers will answer them accordingly.\n" +
-             "Alternatively type /cancel to exit Q&A mode"
+             "Alternatively type /cancel to exit Q&A mode."
     )
     return QUESTION_START
 
@@ -43,7 +43,7 @@ async def handlerQuestionAskSeller(update: Update, context: ContextTypes.DEFAULT
     )
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="Your message has been forwarded to our sellers! A reply will be given in 24 business hours"
+        text="Your message has been forwarded to our sellers! A reply will be given in 24 business hours."
     )
     return ConversationHandler.END
 
@@ -53,6 +53,6 @@ async def handlerQuestionFallback(update: Update, context: ContextTypes.DEFAULT_
     """
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="Exiting Q&A mode..."
+        text="Exited Q&A mode!"
     )
     return ConversationHandler.END

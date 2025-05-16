@@ -6,17 +6,20 @@ from telegram.ext import (
     ContextTypes,
     CommandHandler,
     ConversationHandler,
-    MessageHandler)
+    MessageHandler, CallbackQueryHandler)
 from handleQuestion import *
+from listings import *
 
 #insert telegram token here
-TELEGRAM_TOKEN = ''
+TELEGRAM_TOKEN = '8131399573:AAGYyedk735WuHa7SRcoxiKGx4lChQ7-0Vk'
 
 #configs basic logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
+
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 async def handlerStart(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
@@ -47,18 +50,35 @@ if __name__ == '__main__':
         entry_points=[CommandHandler('questions', handlerQuestionStart)],
         states={
             QUESTION_START: [MessageHandler(filters.TEXT & ~filters.COMMAND, handlerQuestionAskSeller),
-                             CommandHandler('FAQ', handlerQuestionShowFAQ),
-                             CommandHandler('cancel', handlerQuestionFallback)]
+                             CommandHandler('FAQ', handlerQuestionShowFAQ)]
 
         },
         fallbacks=[CommandHandler('cancel', handlerQuestionFallback)]
     )
     FAQ_handler = CommandHandler('FAQ', handlerQuestionShowFAQ)
 
+    listing_handler = ConversationHandler(
+        entry_points=[CommandHandler('listings', handlerListingStart)],
+        states={
+            #LISTING_START: [CallbackQueryHandler(handlerListingStart, pattern="^cancel$")],
+            #LISTING_BUYING: [CallbackQueryHandler(handlerListingBuying, pattern ="^buy$")],
+            LISTING_CHOSEN: [#CallbackQueryHandler(handlerListingStart, pattern="^cancel$"),
+                             #CallbackQueryHandler(handlerListingBuying, pattern ="^buy$"),
+                             CallbackQueryHandler(handlerListingChoosing)],
+            LISTING_AFTERCHOSEN: [CallbackQueryHandler(handlerListingStart, pattern="^cancel$"),
+                                  CallbackQueryHandler(handlerListingBuying_ChooseCharm, pattern ="^buy$")],
+            LISTING_BUYING_ADDON: [CallbackQueryHandler(handlerListingBuying_ChooseAddOns)],
+            LISTING_BUYING_PAYMENT: [CallbackQueryHandler(handlerListingBuying_Payment)]
+        },
+        fallbacks=[CommandHandler('cancel', handlerListingFallback)]
+    )
+
     #add commands
     application.add_handler(start_handler)
     application.add_handler(question_handler)
     application.add_handler(FAQ_handler)
+    application.add_handler(listing_handler)
+
 
     #default commands (do not put unknown_handler above other handlers)
     application.add_handler(unknown_handler)

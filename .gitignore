@@ -6,3 +6,9 @@
 # Datasource local storage ignored files
 /dataSources/
 /dataSources.local.xml
+.idea/misc.xml
+.idea/test.py
+.idea/workspace.xml
+.idea/__pycache__/camera.cpython-312.pyc
+.idea/__pycache__/handleQuestion.cpython-312.pyc
+.idea/__pycache__/listings.cpython-312.pyc
