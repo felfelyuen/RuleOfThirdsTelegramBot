@@ -9,6 +9,7 @@ from telegram.ext import (
     MessageHandler, CallbackQueryHandler)
 from handleQuestion import *
 from listings import *
+from newlistings import *
 
 #insert telegram token here
 TELEGRAM_TOKEN = '8131399573:AAGYyedk735WuHa7SRcoxiKGx4lChQ7-0Vk'
@@ -73,11 +74,20 @@ if __name__ == '__main__':
         fallbacks=[CommandHandler('cancel', handlerListingFallback)]
     )
 
+    addNewListings_handler = ConversationHandler(
+        entry_points=[CommandHandler('newlistings', handlerAddListingStart)],
+        states={
+            ADD_LISTING_CHOOSE_QTY: [CallbackQueryHandler(handlerAddListingChooseQty)],
+            ADD_LISTING_SUCCESS: [CallbackQueryHandler(handlerAddListingSuccess)]
+        },
+        fallbacks=[CommandHandler(handlerAddListingCancel)]
+    )
     #add commands
     application.add_handler(start_handler)
     application.add_handler(question_handler)
     application.add_handler(FAQ_handler)
     application.add_handler(listing_handler)
+    application.add_handler(addNewListings_handler)
 
 
     #default commands (do not put unknown_handler above other handlers)
