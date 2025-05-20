@@ -80,7 +80,7 @@ if __name__ == '__main__':
             ADD_LISTING_CHOOSE_QTY: [CallbackQueryHandler(handlerAddListingChooseQty)],
             ADD_LISTING_SUCCESS: [CallbackQueryHandler(handlerAddListingSuccess)]
         },
-        fallbacks=[CommandHandler(handlerAddListingCancel)]
+        fallbacks=[CommandHandler('cancel', handlerAddListingCancel)]
     )
     #add commands
     application.add_handler(start_handler)

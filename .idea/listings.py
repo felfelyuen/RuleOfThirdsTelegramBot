@@ -13,9 +13,9 @@ from purchase_info import PurchaseInfo
 
 def setUpTestListings():
     #listings = []
-    cam1 = Camera("Sony", "Cybershot DSC-WX1", "yes", "", "16.1", "This is a Sony Cybershot DSC-WX1\nIt's really good you should buy it\n \nreally really")
-    cam2 = Camera("Nikon", "Coolpix L1", "", "AA", "10","This is a Nikon Coolpix L1\nPrice point ONE THOUSAND DOLLARS")
-    cam3 = Camera("Canon", "Ixy 120", "", "", "16", "This is the Canon Ixy 120\nThis is also a text message")
+    cam1 = Camera("Sony", "Cybershot DSC-WX1", "yes", "", "16.1", 1,"This is a Sony Cybershot DSC-WX1\nIt's really good you should buy it\n \nreally really")
+    cam2 = Camera("Nikon", "Coolpix L1", "", "AA", "10",1,"This is a Nikon Coolpix L1\nPrice point ONE THOUSAND DOLLARS")
+    cam3 = Camera("Canon", "Ixy 120", "", "", "16", 2,"This is the Canon Ixy 120\nThis is also a text message")
 
     listings =[cam1, cam2, cam3]
 
@@ -38,7 +38,7 @@ async def handlerListingStart(update: Update, context: ContextTypes.DEFAULT_TYPE
     i = 0
     while i < len(listings):
         x = listings[i]
-        camera_name = x.brand + " " + x.model
+        camera_name = x.name
         keyboard.append([InlineKeyboardButton(text=camera_name, callback_data=i)])
         i += 1
 

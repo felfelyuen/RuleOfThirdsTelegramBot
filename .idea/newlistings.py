@@ -32,14 +32,14 @@ async def handlerAddListingStart (update: Update, context: ContextTypes.DEFAULT_
             #amount of cameras per row is 2, so that the seller can still see the camera name
             while j < 2:
                 x = catalogue[j]
-                camera_name = x.brand + " " + x.model
+                camera_name = x.name
                 row.append(InlineKeyboardButton(text=camera_name, callback_data=j))
                 j += 1
             i += 2
         else:
             while i < len(catalogue):
                 x = catalogue[i]
-                camera_name = x.brand + " " + x.model
+                camera_name = x.name
                 row.append(InlineKeyboardButton(text=camera_name, callback_data=i))
                 i += 1
         keyboard.append(row)
@@ -72,7 +72,37 @@ async def handlerAddListingSuccess (update: Update, context: ContextTypes.DEFAUL
     query = update.callback_query
     await query.answer()
 
-    await query.edit_message_text(text="to be finished")
+
+    global catalogue
+    indexCamera = catalogue[int(query.data[0])]
+    message = ""
+
+    #fetch listings list
+    editedListing = listings.listings
+
+    i = 0
+    while (i < len(editedListing)) & (editedListing[i].name != indexCamera.name):
+        i += 1
+    if (i < len(editedListing)):
+        #add to the quantity
+        addedQuantity = int(query.data[2])
+        editedListing[i].quantity += addedQuantity
+        message = ("The camera " + indexCamera.name +
+                   " has added in quantity of " + str(addedQuantity) + "\n" +
+                   "Total quantity of camera is now: " + str(editedListing[i].quantity))
+    else:
+        #append to the listing list
+        indexCamera.quantity = int(query.data[2])
+        editedListing.append(indexCamera)
+        message = ("The camera " + indexCamera.name +
+                   " is newly added into the listings." + "\n" +
+                   "Total quantity of camera is now: " + str(editedListing[i].quantity))
+
+    #make listings the editedListings
+    listings.listings = editedListing
+    await query.edit_message_text(text="Listing updated!\n" + message)
+
+    #await query.edit_message_text(text=str(len(editedListing)))
     return ConversationHandler.END
 
 
@@ -83,5 +113,4 @@ async def handlerAddListingCancel (update: Update, context: ContextTypes.DEFAULT
     #await query.edit_message_text(text="Add listing action cancelled")
     await context.bot.send_message(chat_id=update.effective_chat.id,text="Add listing action cancelled")
     return ConversationHandler.END
-
 
