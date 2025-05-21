@@ -9,7 +9,7 @@ from telegram.ext import (
     MessageHandler, CallbackQueryHandler)
 from handleQuestion import *
 from listings import *
-from newlistings import *
+from buyer_listings import *
 
 #insert telegram token here
 TELEGRAM_TOKEN = '8131399573:AAGYyedk735WuHa7SRcoxiKGx4lChQ7-0Vk'
@@ -30,8 +30,7 @@ async def handlerStart(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id=update.effective_chat.id,
         text="Welcome to Rule Of Thirds Messaging Bot! What would you like to do today?\n"+
              "/questions ask questions\n"
-             "/catalogue view our catalogue\n"
-             "/buy buy a specific camera with a code")
+             "/listings view our listings\n")
 
 async def handlerUnknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
@@ -61,12 +60,8 @@ if __name__ == '__main__':
     listing_handler = ConversationHandler(
         entry_points=[CommandHandler('listings', handlerListingStart)],
         states={
-            #LISTING_START: [CallbackQueryHandler(handlerListingStart, pattern="^cancel$")],
-            #LISTING_BUYING: [CallbackQueryHandler(handlerListingBuying, pattern ="^buy$")],
-            LISTING_CHOSEN: [#CallbackQueryHandler(handlerListingStart, pattern="^cancel$"),
-                             #CallbackQueryHandler(handlerListingBuying, pattern ="^buy$"),
-                             CallbackQueryHandler(handlerListingChoosing)],
-            LISTING_AFTERCHOSEN: [CallbackQueryHandler(handlerListingStart, pattern="^cancel$"),
+            LISTING_CHOOSE_CAMERA: [CallbackQueryHandler(handlerListingChoosing)],
+            LISTING_AFTERCHOSEN: [CallbackQueryHandler(handlerListingStart, pattern="^back$"),
                                   CallbackQueryHandler(handlerListingBuying_ChooseCharm, pattern ="^buy$")],
             LISTING_BUYING_ADDON: [CallbackQueryHandler(handlerListingBuying_ChooseAddOns)],
             LISTING_BUYING_PAYMENT: [CallbackQueryHandler(handlerListingBuying_Payment)]
@@ -74,20 +69,24 @@ if __name__ == '__main__':
         fallbacks=[CommandHandler('cancel', handlerListingFallback)]
     )
 
-    addNewListings_handler = ConversationHandler(
-        entry_points=[CommandHandler('newlistings', handlerAddListingStart)],
+    editListings_handler = ConversationHandler(
+        entry_points=[CommandHandler('editlistings', handlerEditListingStart)],
         states={
+            EDIT_LISTING_START: [CallbackQueryHandler(handlerAddListingStart, pattern="^add$"),
+                                 CallbackQueryHandler(handlerChangeQTYStart, pattern="^changeqty$")],
             ADD_LISTING_CHOOSE_QTY: [CallbackQueryHandler(handlerAddListingChooseQty)],
-            ADD_LISTING_SUCCESS: [CallbackQueryHandler(handlerAddListingSuccess)]
+            ADD_LISTING_SUCCESS: [CallbackQueryHandler(handlerAddListingSuccess)],
+            QUANTITY_CHANGE_CHOSEN: [CallbackQueryHandler(handlerChangeQTYChooseQTY)],
+            QUANTITY_CHANGE_SUCCESS: [MessageHandler(filters.TEXT, handlerChangeQTYSuccess)]
         },
-        fallbacks=[CommandHandler('cancel', handlerAddListingCancel)]
+        fallbacks=[CommandHandler('cancel', handlerEditListingCancel)]
     )
     #add commands
     application.add_handler(start_handler)
     application.add_handler(question_handler)
     application.add_handler(FAQ_handler)
     application.add_handler(listing_handler)
-    application.add_handler(addNewListings_handler)
+    application.add_handler(editListings_handler)
 
 
     #default commands (do not put unknown_handler above other handlers)

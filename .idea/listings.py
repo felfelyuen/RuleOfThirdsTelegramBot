@@ -24,11 +24,11 @@ def setUpTestListings():
 listings = setUpTestListings()
 
 
-LISTING_START, LISTING_CHOSEN, LISTING_AFTERCHOSEN, LISTING_BUYING_ADDON, LISTING_BUYING_PAYMENT = range(5)
+LISTING_START, LISTING_CHOOSE_CAMERA, LISTING_AFTERCHOSEN, LISTING_BUYING_ADDON, LISTING_BUYING_PAYMENT = range(5)
 
 async def handlerListingStart(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
-    handles start of conversation with catalogue
+    handles start of conversation with listings
     """
 
     #retrieve listings
@@ -46,26 +46,32 @@ async def handlerListingStart(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="Here is the catalogue! Click on any button to view the camera and buy!\n Use /cancel to exit the catalogue",
+        text="Here are the listings! Click on any button to view the camera and buy!\n Use /cancel to exit the listings",
         reply_markup=reply_markup)
 
-    return LISTING_CHOSEN
+    return LISTING_CHOOSE_CAMERA
 
 async def handlerListingChoosing(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Parses the CallbackQuery and updates the message text."""
+    """
+    Handles the conversation when the user is choosing which camera to buy.
+    """
     query = update.callback_query
     await query.answer()
 
     global listings
-    camera_message = listings[int(query.data)].message
+    indexCamera = listings[int(query.data)]
+    camera_message = indexCamera.message + "\nThere are currently " + str(indexCamera.quantity) + " in stock!"
 
     new_keyboard = [[InlineKeyboardButton("Buy!", callback_data="buy"),
-                     InlineKeyboardButton("Cancel", callback_data="cancel")]]
+                     InlineKeyboardButton("Go Back", callback_data="back")]]
     await query.edit_message_text(text=camera_message, reply_markup=InlineKeyboardMarkup(new_keyboard))
     return LISTING_AFTERCHOSEN
-    # await query.edit_message_reply_markup(reply_markup=new_keyboard)
 
 async def handlerListingBuying_ChooseCharm (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Handles the conversation after the user chose which camera to buy,
+    now is to choose which charm to get
+    """
     query = update.callback_query
     await query.answer()
 
@@ -81,6 +87,10 @@ async def handlerListingBuying_ChooseCharm (update: Update, context: ContextType
     return LISTING_BUYING_ADDON
 
 async def handlerListingBuying_ChooseAddOns (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Handles the conversation after the user chose the camera and the charm,
+    now is to choose any add-ons that the user may want
+    """
     query = update.callback_query
     await query.answer()
 
@@ -95,6 +105,10 @@ async def handlerListingBuying_ChooseAddOns (update: Update, context: ContextTyp
     return LISTING_BUYING_PAYMENT
 
 async def handlerListingBuying_Payment (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Handles the conversation after the user chose the camera and the charm and the add-ons,
+    now is to handle payment
+    """
     query = update.callback_query
     await query.answer()
 
@@ -106,6 +120,9 @@ async def handlerListingBuying_Payment (update: Update, context: ContextTypes.DE
     return ConversationHandler.END
 
 async def handlerListingFallback (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Handles the conversation if the user cancels and it will exit the conversation and the listings mode
+    """
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="Exited Catalogue mode"
