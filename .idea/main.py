@@ -12,7 +12,7 @@ from listings import *
 from buyer_listings import *
 
 #insert telegram token here
-TELEGRAM_TOKEN = '8131399573:AAGYyedk735WuHa7SRcoxiKGx4lChQ7-0Vk'
+TELEGRAM_TOKEN = ''
 
 #configs basic logging
 logging.basicConfig(
