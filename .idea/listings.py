@@ -30,7 +30,6 @@ async def handlerListingStart(update: Update, context: ContextTypes.DEFAULT_TYPE
     """
     handles start of conversation with listings
     """
-
     #retrieve listings
     global listings
 

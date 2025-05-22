@@ -73,9 +73,13 @@ if __name__ == '__main__':
         entry_points=[CommandHandler('editlistings', handlerEditListingStart)],
         states={
             EDIT_LISTING_START: [CallbackQueryHandler(handlerAddListingStart, pattern="^add$"),
-                                 CallbackQueryHandler(handlerChangeQTYStart, pattern="^changeqty$")],
+                                 CallbackQueryHandler(handlerChangeQTYStart, pattern="^changeqty$"),
+                                 CallbackQueryHandler(handlerDeleteListingStart, pattern="^delete$")],
             ADD_LISTING_CHOOSE_QTY: [CallbackQueryHandler(handlerAddListingChooseQty)],
-            ADD_LISTING_SUCCESS: [CallbackQueryHandler(handlerAddListingSuccess)],
+            ADD_LISTING_SUCCESS: [MessageHandler(filters.TEXT, handlerAddListingSuccess)],
+            DELETE_LISTING_CHOSEN: [CallbackQueryHandler(handlerDeleteConfirmation)],
+            DELETE_LISTING_CONFIRMATION: [CallbackQueryHandler(handlerDeleteListingStart, pattern="N"),
+                                          CallbackQueryHandler(handlerDeleteSuccess, pattern="Y")],
             QUANTITY_CHANGE_CHOSEN: [CallbackQueryHandler(handlerChangeQTYChooseQTY)],
             QUANTITY_CHANGE_SUCCESS: [MessageHandler(filters.TEXT, handlerChangeQTYSuccess)]
         },
