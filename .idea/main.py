@@ -12,7 +12,7 @@ from listings import *
 from buyer_listings import *
 
 #insert telegram token here
-TELEGRAM_TOKEN = ''
+TELEGRAM_TOKEN = '8131399573:AAGYyedk735WuHa7SRcoxiKGx4lChQ7-0Vk'
 
 #configs basic logging
 logging.basicConfig(
@@ -76,12 +76,12 @@ if __name__ == '__main__':
                                  CallbackQueryHandler(handlerChangeQTYStart, pattern="^changeqty$"),
                                  CallbackQueryHandler(handlerDeleteListingStart, pattern="^delete$")],
             ADD_LISTING_CHOOSE_QTY: [CallbackQueryHandler(handlerAddListingChooseQty)],
-            ADD_LISTING_SUCCESS: [MessageHandler(filters.TEXT, handlerAddListingSuccess)],
+            ADD_LISTING_SUCCESS: [MessageHandler(filters.TEXT & ~filters.COMMAND, handlerAddListingSuccess)],
             DELETE_LISTING_CHOSEN: [CallbackQueryHandler(handlerDeleteConfirmation)],
             DELETE_LISTING_CONFIRMATION: [CallbackQueryHandler(handlerDeleteListingStart, pattern="N"),
                                           CallbackQueryHandler(handlerDeleteSuccess, pattern="Y")],
             QUANTITY_CHANGE_CHOSEN: [CallbackQueryHandler(handlerChangeQTYChooseQTY)],
-            QUANTITY_CHANGE_SUCCESS: [MessageHandler(filters.TEXT, handlerChangeQTYSuccess)]
+            QUANTITY_CHANGE_SUCCESS: [MessageHandler(filters.TEXT & ~filters.COMMAND, handlerChangeQTYSuccess)]
         },
         fallbacks=[CommandHandler('cancel', handlerEditListingCancel)]
     )

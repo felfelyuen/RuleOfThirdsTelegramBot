@@ -44,7 +44,8 @@ async def handlerEditListingStart (update: Update, context: ContextTypes.DEFAULT
         [InlineKeyboardButton("Change quantity", callback_data="changeqty")],
         [InlineKeyboardButton("Delete listing", callback_data="delete")]
     ]
-    await update.message.reply_text(text="What do you want to change in the listings today?",
+    await update.message.reply_text(text="What do you want to change in the listings today?"
+                                         "Use /cancel to exit the edit listings mode at any time",
                                     reply_markup=InlineKeyboardMarkup(keyboard))
     return EDIT_LISTING_START
 
@@ -63,7 +64,7 @@ async def handlerAddListingStart (update: Update, context: ContextTypes.DEFAULT_
     #retrieve whole catalogue
     global catalogue
 
-    #set up buttons in message
+    #set up keyboard buttons
     keyboard = []
     i = 0
     while i < len(catalogue):
@@ -99,12 +100,14 @@ async def handlerAddListingChooseQty (update: Update, context: ContextTypes.DEFA
     """
     query = update.callback_query
     await query.answer()
+
     global camera_choice
     camera_choice = query.data
 
     global catalogue
     indexCamera = catalogue[int(camera_choice)]
     message = "You have chosen: " + indexCamera.name + "\n"
+
     #check if camera is inside the listings already
     editedListing = listings.listings
     i = 0
@@ -116,7 +119,7 @@ async def handlerAddListingChooseQty (update: Update, context: ContextTypes.DEFA
         #inside listing
         currentStock = editedListing[i].quantity
         message += ("The camera is ALREADY INSIDE your listings.\n"
-                   "How many cameras do you want to add into the listing?\n"
+                   "How many cameras do you want to add into the listing?\n\n"
                    "Current stock: " + str(currentStock))
         camera_choice += " OLD " + str(i)
     else:
@@ -208,7 +211,7 @@ async def handlerDeleteConfirmation (update: Update, context: ContextTypes.DEFAU
     editedListings = listings.listings
     indexCamera = editedListings[int(index)]
     keyboard = [[InlineKeyboardButton(text="yes", callback_data="Y " + index),
-                 InlineKeyboardButton(text="cancel", callback_data="N " + index)]]
+                 InlineKeyboardButton(text="go back", callback_data="N " + index)]]
     await query.edit_message_text(text="Are you sure you want to delete this camera listing?\n" +
                                        indexCamera.name + "\n" +
                                        "Quantity of: " + str(indexCamera.quantity),
@@ -310,9 +313,6 @@ async def handlerEditListingCancel (update: Update, context: ContextTypes.DEFAUL
     """
     Fallback if the user decides to cancel halfway.
     """
-    query = update.callback_query
-    await query.answer()
-
-    await query.edit_message_text(chat_id=update.effective_chat.id,text="Edit listing action cancelled")
+    await update.message.reply_text(text="Edit listing action cancelled")
     return ConversationHandler.END
 
