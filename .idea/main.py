@@ -28,9 +28,14 @@ async def handlerStart(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="Welcome to Rule Of Thirds Messaging Bot! What would you like to do today?\n"+
+        text="Welcome to Rule Of Thirds Messaging Bot!\n"
+             "What would you like to do today?\n\n"
+             "==================================\n"
              "/questions ask questions\n"
-             "/listings view our listings\n")
+             "/listings view our listings\n"
+             "/cart to view your shopping cart\n"
+             "/checkout to pay and confirm delivery details\n"
+             "==================================")
 
 async def handlerUnknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
@@ -62,9 +67,13 @@ if __name__ == '__main__':
         states={
             LISTING_CHOOSE_CAMERA: [CallbackQueryHandler(handlerListingChoosing)],
             LISTING_AFTERCHOSEN: [CallbackQueryHandler(handlerListingStart, pattern="^back$"),
-                                  CallbackQueryHandler(handlerListingBuying_ChooseCharm, pattern ="^buy$")],
-            LISTING_BUYING_ADDON: [CallbackQueryHandler(handlerListingBuying_ChooseAddOns)],
-            LISTING_BUYING_PAYMENT: [CallbackQueryHandler(handlerListingBuying_Payment)]
+                                  CallbackQueryHandler(handlerListingBuying_ChooseCharm)],
+            LISTING_BUYING_ADDON: [CallbackQueryHandler(handlerListingChoosing, pattern = "^back$"),
+                                   CallbackQueryHandler(handlerListingBuying_ChooseAddOns)],
+            LISTING_BUYING_CONFIRMATION: [CallbackQueryHandler(handlerListingBuying_ChooseCharm, pattern ="^back$"),
+                                          CallbackQueryHandler(handlerListingBuying_Confirmation)],
+            LISTING_BUYING_ADDEDTOCART: [CallbackQueryHandler(handlerListingBuying_ChooseAddOns, pattern ="^back$"),
+                                         CallbackQueryHandler(handlerListingBuying_AddedToCart)]
         },
         fallbacks=[CommandHandler('cancel', handlerListingFallback)]
     )
