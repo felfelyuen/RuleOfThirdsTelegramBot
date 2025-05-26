@@ -3,7 +3,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes, ConversationHandler
 from camera import Camera
 from purchase_info import PurchaseInfo
-from customer_cart_list import Cart
+from shopping_cart import Cart
 import delivery
 
 def setUpTestListings():
@@ -74,8 +74,8 @@ async def handlerListingBuying_ChooseCharm (update: Update, context: ContextType
     global userPurchaseInfo
     userPurchaseInfo = PurchaseInfo(indexCamera, "", "", "")
 
-    charm_keyboard = [[InlineKeyboardButton("Plain", callback_data="plain"),
-                       InlineKeyboardButton("Beaded", callback_data="beaded"),
+    charm_keyboard = [[InlineKeyboardButton("Plain", callback_data="Plain"),
+                       InlineKeyboardButton("Beaded", callback_data="Beaded"),
                        InlineKeyboardButton('Go Back', callback_data="back")]]
     await query.edit_message_text(
         text="Thank you for your interest!\n" 
@@ -144,9 +144,9 @@ async def handlerListingBuying_AddedToCart (update: Update, context: ContextType
     User confirms to want this camera
     Now is to add into the user's cart
     """
-
     query = update.callback_query
     await query.answer()
+
     telegramID = update.effective_chat.id
     global userPurchaseInfo
 
@@ -155,12 +155,14 @@ async def handlerListingBuying_AddedToCart (update: Update, context: ContextType
     userCartIndex = customerCarts.findCartIndex(telegramID)
     if userCartIndex == "NO_CART_FOUND":
         #no cart is found, need to make a new cart
+        logging.info("no cart found, new cart to be made now")
         newCart = Cart(telegramID, [userPurchaseInfo])
         customerCarts.insertIntoMap(newCart)
     else:
         #the user has a cart
-        customerCarts[userCartIndex].cart.append(userPurchaseInfo)
-
+        logging.info("user has cart in index " + str(userCartIndex) )
+        customerCarts.list[userCartIndex].cart.append(userPurchaseInfo)
+    logging.warning(customerCarts.findCartIndex(telegramID))
     delivery.customerCarts = customerCarts
     message = ("Camera has been added into your cart!\n"
                "Please use /cart to view your shopping cart, and use /checkout to pay and confirm delivery details. :)")

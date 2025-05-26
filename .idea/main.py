@@ -10,9 +10,10 @@ from telegram.ext import (
 from handleQuestion import *
 from listings import *
 from buyer_listings import *
+from shopping_cart import *
 
 #insert telegram token here
-TELEGRAM_TOKEN = '8131399573:AAGYyedk735WuHa7SRcoxiKGx4lChQ7-0Vk'
+TELEGRAM_TOKEN = '7028968855:AAGdZvw_--h3Juy_y9w8dWqRD4B7SpU-_9E'
 
 #configs basic logging
 logging.basicConfig(
@@ -26,6 +27,7 @@ async def handlerStart(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     handles /start command
     """
+
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="Welcome to Rule Of Thirds Messaging Bot!\n"
@@ -94,12 +96,21 @@ if __name__ == '__main__':
         },
         fallbacks=[CommandHandler('cancel', handlerEditListingCancel)]
     )
+
+    cart_handler = ConversationHandler(
+        entry_points=[CommandHandler('cart', handlerCartStart)],
+        states={
+            CART_EDIT: [CommandHandler('smth',handlerCartStart)]
+        },
+        fallbacks=[CommandHandler('cancel',handlerCartCancel)]
+    )
     #add commands
     application.add_handler(start_handler)
     application.add_handler(question_handler)
     application.add_handler(FAQ_handler)
     application.add_handler(listing_handler)
     application.add_handler(editListings_handler)
+    application.add_handler(cart_handler)
 
 
     #default commands (do not put unknown_handler above other handlers)

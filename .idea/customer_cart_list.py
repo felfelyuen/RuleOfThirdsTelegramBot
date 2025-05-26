@@ -1,8 +1,10 @@
+import logging
+
 def hashfunction (i) -> int:
     #returns the leftmost digit
-    while (i % 10) != 0 :
-        i /= 10
-    return i
+    number = str(i)
+    return int(number[0])
+
 
 def incre(list, i):
     i += 1
@@ -35,12 +37,10 @@ def reduceList(list):
             insertIntoList(newList, x)
     return newList
 
-class Cart:
-    def __init__(self, id, cart):
-        self.id = id #integer
-        self.cart = cart #array of cameras
-
 class HashMap:
+    """
+    Class for the list of all the user's shopping cart.
+    """
     def __init__(self):
         self.list = ["", "", "", "", "", "", "", "", "", ""]
         self.amount = 0
