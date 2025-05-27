@@ -33,7 +33,7 @@ def expandList(list):
 def reduceList(list):
     newList =[len(list) / 2]
     for x in list:
-        if ((x != "EMPTY") | (x != "")) :
+        if ((x != "EMPTY") & (x != "")) :
             insertIntoList(newList, x)
     return newList
 
@@ -54,9 +54,9 @@ class HashMap:
             if (self.list[checkIndex] == "") :
                 return "NO_CART_FOUND"
             if ((self.list[checkIndex] == "EMPTY")) :
-                checkIndex = incre(self.list, i)
+                checkIndex = incre(self.list, checkIndex)
             elif (self.list[checkIndex].id != id):
-                checkIndex = incre(self.list, i)
+                checkIndex = incre(self.list, checkIndex)
             else :
                 return checkIndex
 

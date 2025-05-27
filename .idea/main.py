@@ -100,7 +100,12 @@ if __name__ == '__main__':
     cart_handler = ConversationHandler(
         entry_points=[CommandHandler('cart', handlerCartStart)],
         states={
-            CART_EDIT: [CommandHandler('smth',handlerCartStart)]
+            CART_EDIT: [CallbackQueryHandler(handlerCartRemoveItem, pattern="^remove$"),
+                        CallbackQueryHandler(handlerCartClearConfirm, pattern="^clear$")],
+            CART_REMOVE_CONFIRM: [CallbackQueryHandler(handlerCartRemoveConfirm)],
+            CART_REMOVE_COMPLETE: [CallbackQueryHandler(handlerCartRemoveItem, pattern="^back$"),
+                                CallbackQueryHandler(handlerCartRemoveComplete)],
+            CART_CLEAR_COMPLETE: [CallbackQueryHandler(handlerCartClearComplete)]
         },
         fallbacks=[CommandHandler('cancel',handlerCartCancel)]
     )

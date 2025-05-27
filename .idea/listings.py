@@ -162,14 +162,12 @@ async def handlerListingBuying_AddedToCart (update: Update, context: ContextType
         #the user has a cart
         logging.info("user has cart in index " + str(userCartIndex) )
         customerCarts.list[userCartIndex].cart.append(userPurchaseInfo)
-    logging.warning(customerCarts.findCartIndex(telegramID))
+
     delivery.customerCarts = customerCarts
     message = ("Camera has been added into your cart!\n"
                "Please use /cart to view your shopping cart, and use /checkout to pay and confirm delivery details. :)")
 
-    await query.edit_message_text(
-        text=message
-    )
+    await query.edit_message_text(text=message)
     return ConversationHandler.END
 
 async def handlerListingFallback (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
