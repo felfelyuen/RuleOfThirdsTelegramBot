@@ -12,3 +12,4 @@
 .idea/__pycache__/camera.cpython-312.pyc
 .idea/__pycache__/handleQuestion.cpython-312.pyc
 .idea/__pycache__/listings.cpython-312.pyc
+.src/serviceAccountKey.json
