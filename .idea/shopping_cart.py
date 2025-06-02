@@ -3,8 +3,8 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes, ConversationHandler
 from camera import Camera
 from purchase_info import PurchaseInfo
-import delivery
 import listings
+from customer_cart_list import HashMap
 
 class Cart:
     """
@@ -18,6 +18,9 @@ class Cart:
  CART_REMOVE_CONFIRM, CART_REMOVE_COMPLETE,
  CART_CLEAR_COMPLETE,
  CART_PAY_CONFIRM, CART_PAY_WAITING_PAYMENT) = range(6)
+
+global customerCarts
+customerCarts = HashMap()
 
 def printPurchaseInfo (i, info):
     message = ("==================================\n" +
@@ -46,7 +49,7 @@ async def handlerCartStart (update: Update, context: ContextTypes.DEFAULT_TYPE) 
     #retrieve cart
     telegramID = update.effective_chat.id
 
-    customerCarts = delivery.customerCarts
+    global customerCarts
     userCartIndex = customerCarts.findCartIndex(telegramID)
     if userCartIndex == "NO_CART_FOUND":
         #no cart is found, need to make a new cart
@@ -85,7 +88,7 @@ async def handlerCartRemoveItem (update: Update, context: ContextTypes.DEFAULT_T
     await query.answer()
 
     telegramID = update.effective_chat.id
-    customerCarts = delivery.customerCarts
+    global customerCarts
     userCartIndex = customerCarts.findCartIndex(telegramID)
     userCart = customerCarts.list[userCartIndex].cart
 
@@ -110,7 +113,7 @@ async def handlerCartRemoveConfirm (update: Update, context: ContextTypes.DEFAUL
     await query.answer()
 
     telegramID = update.effective_chat.id
-    customerCarts = delivery.customerCarts
+    global customerCarts
     userCartIndex = customerCarts.findCartIndex(telegramID)
     userCart = customerCarts.list[userCartIndex].cart
     indexPurchaseInfo = userCart[int(query.data)]
@@ -130,17 +133,17 @@ async def handlerCartRemoveComplete (update: Update, context: ContextTypes.DEFAU
     await query.answer()
 
     telegramID = update.effective_chat.id
-    customerCarts = delivery.customerCarts
+    global customerCarts
     userCartIndex = customerCarts.findCartIndex(telegramID)
     userCart = customerCarts.list[userCartIndex].cart
     indexPurchaseInfo = userCart[int(query.data)]
 
     #remove item
-    delivery.customerCarts.list[userCartIndex].cart.pop(int(query.data))
+    customerCarts.list[userCartIndex].cart.pop(int(query.data))
 
     #if cart has nothing, then remove cart from map
     if len(userCart) == 0:
-        delivery.customerCarts.removeFromMap(userCartIndex)
+        customerCarts.removeFromMap(userCartIndex)
 
     #print some message
     await query.edit_message_text(text="Camera removed!\n" + printPurchaseInfo(int(query.data), indexPurchaseInfo))
@@ -157,7 +160,7 @@ async def handlerCartClearConfirm (update: Update, context: ContextTypes.DEFAULT
     await query.answer()
 
     telegramID = update.effective_chat.id
-    customerCarts = delivery.customerCarts
+    global customerCarts
     userCartIndex = customerCarts.findCartIndex(telegramID)
     userCart = customerCarts.list[userCartIndex].cart
 
@@ -175,11 +178,11 @@ async def handlerCartClearComplete (update: Update, context: ContextTypes.DEFAUL
     await query.answer()
 
     telegramID = update.effective_chat.id
-    customerCarts = delivery.customerCarts
+    global customerCarts
     userCartIndex = customerCarts.findCartIndex(telegramID)
 
     #remove cart from hash map because it is empty now
-    delivery.customerCarts.removeFromMap(userCartIndex)
+    customerCarts.removeFromMap(userCartIndex)
 
     await query.edit_message_text(text="Cart cleared!")
     return ConversationHandler.END
@@ -197,7 +200,7 @@ async def handlerCartPayConfirmationPage (update: Update, context: ContextTypes.
     await query.answer()
 
     telegramID = update.effective_chat.id
-    customerCarts = delivery.customerCarts
+    global customerCarts
     userCartIndex = customerCarts.findCartIndex(telegramID)
     userCart = customerCarts.list[userCartIndex].cart
 
@@ -221,7 +224,7 @@ async def handlerCartPay_ChooseDelivery (update: Update, context: ContextTypes.D
     await query.answer()
 
     telegramID = update.effective_chat.id
-    customerCarts = delivery.customerCarts
+    global customerCarts
     userCartIndex = customerCarts.findCartIndex(telegramID)
     userCart = customerCarts.list[userCartIndex].cart
 
@@ -259,7 +262,7 @@ async def handlerCartPay_Pickup (update: Update, context: ContextTypes.DEFAULT_T
     await query.answer()
 
     telegramID = update.effective_chat.id
-    customerCarts = delivery.customerCarts
+    global customerCarts
     userCartIndex = customerCarts.findCartIndex(telegramID)
     userCart = customerCarts.list[userCartIndex].cart
 
@@ -284,7 +287,7 @@ async def handlerCartPay_Delivery (update: Update, context: ContextTypes.DEFAULT
     await query.answer()
 
     telegramID = update.effective_chat.id
-    customerCarts = delivery.customerCarts
+    global customerCarts
     userCartIndex = customerCarts.findCartIndex(telegramID)
     userCart = customerCarts.list[userCartIndex].cart
 
@@ -312,7 +315,7 @@ async def handlerCartPay_Asap (update: Update, context: ContextTypes.DEFAULT_TYP
     await query.answer()
 
     telegramID = update.effective_chat.id
-    customerCarts = delivery.customerCarts
+    global customerCarts
     userCartIndex = customerCarts.findCartIndex(telegramID)
     userCart = customerCarts.list[userCartIndex].cart
 

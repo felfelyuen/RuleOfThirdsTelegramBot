@@ -4,7 +4,7 @@ from telegram.ext import ContextTypes, ConversationHandler
 from camera import Camera
 from purchase_info import PurchaseInfo
 from shopping_cart import Cart
-import delivery
+import shopping_cart
 
 def setUpTestListings():
     #listings = []
@@ -150,7 +150,7 @@ async def handlerListingBuying_AddedToCart (update: Update, context: ContextType
     global userPurchaseInfo
 
     #check if user has a ongoing cart
-    customerCarts = delivery.customerCarts
+    customerCarts = shopping_cart.customerCarts
     userCartIndex = customerCarts.findCartIndex(telegramID)
     if userCartIndex == "NO_CART_FOUND":
         #no cart is found, need to make a new cart
@@ -162,7 +162,7 @@ async def handlerListingBuying_AddedToCart (update: Update, context: ContextType
         logging.info("user has cart in index " + str(userCartIndex) )
         customerCarts.list[userCartIndex].cart.append(userPurchaseInfo)
 
-    delivery.customerCarts = customerCarts
+    shopping_cart.customerCarts = customerCarts
     message = ("Camera has been added into your cart!\n"
                "Please use /cart to view your shopping cart, and use /checkout to pay and confirm delivery details. :)")
 

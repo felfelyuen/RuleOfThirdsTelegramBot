@@ -2,12 +2,8 @@ import requests
 import logging
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
-    filters,
-    ApplicationBuilder,
     ContextTypes,
-    CommandHandler,
-    ConversationHandler,
-    MessageHandler)
+    ConversationHandler)
 from camera import Camera
 
 import listings
