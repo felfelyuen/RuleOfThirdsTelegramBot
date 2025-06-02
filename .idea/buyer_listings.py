@@ -19,7 +19,6 @@ BUYER LISTING FUNCTIONS
 Where there are functions to let the buyer edit the listings by either
 1.Adding
 2.Deleting
-3.Changing the quantity
 =========================================================================
 '''
 
@@ -28,12 +27,11 @@ global catalogue
 catalogue = setUpTestListings()
 
 (EDIT_LISTING_START,
- ADD_LISTING_CHOOSE_QTY,
+ ADD_LISTING_CONFIRM,
  ADD_LISTING_SUCCESS,
  DELETE_LISTING_CHOSEN,
- DELETE_LISTING_CONFIRMATION,
- QUANTITY_CHANGE_CHOSEN,
- QUANTITY_CHANGE_SUCCESS) = range(7)
+ DELETE_LISTING_CONFIRMATION
+ ) = range(5)
 
 async def handlerEditListingStart (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
@@ -41,7 +39,6 @@ async def handlerEditListingStart (update: Update, context: ContextTypes.DEFAULT
     """
     keyboard = [
         [InlineKeyboardButton("Add listing", callback_data="add")],
-        [InlineKeyboardButton("Change quantity", callback_data="changeqty")],
         [InlineKeyboardButton("Delete listing", callback_data="delete")]
     ]
     await update.message.reply_text(text="What do you want to change in the listings today?"
@@ -92,9 +89,9 @@ async def handlerAddListingStart (update: Update, context: ContextTypes.DEFAULT_
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-    return ADD_LISTING_CHOOSE_QTY
+    return ADD_LISTING_CONFIRM
 
-async def handlerAddListingChooseQty (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def handlerAddListingConfirmation (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
     Handles asking how many cameras to add into the listing
     """
@@ -106,40 +103,21 @@ async def handlerAddListingChooseQty (update: Update, context: ContextTypes.DEFA
 
     global catalogue
     indexCamera = catalogue[int(camera_choice)]
-    message = "You have chosen: " + indexCamera.name + "\n"
+    message = "You have chosen: " + indexCamera.name + "\nDo you confirm to add this in?"
 
-    #check if camera is inside the listings already
-    editedListing = listings.listings
-    i = 0
-    while i < len(editedListing):
-        if (editedListing[i].name == indexCamera.name):
-            break
-        i += 1
-    if i < len(editedListing) :
-        #inside listing
-        currentStock = editedListing[i].quantity
-        message += ("The camera is ALREADY INSIDE your listings.\n"
-                   "How many cameras do you want to add into the listing?\n\n"
-                   "Current stock: " + str(currentStock))
-        camera_choice += " OLD " + str(i)
-    else:
-        #completely new listing
-        message += ("This is a COMPLETELY NEW listing!\n"
-                    "How many cameras do you want to add into the listing?")
-        camera_choice += " NEW"
+    keyboard = [[InlineKeyboardButton("yes", callback_data="Y"),
+                 InlineKeyboardButton("no (go back)", callback_data="N")]]
 
-    await query.edit_message_text(text=message)
+    await query.edit_message_text(text=message, reply_markup=InlineKeyboardMarkup(keyboard))
+
     return ADD_LISTING_SUCCESS
 
 async def handlerAddListingSuccess (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
     Handles the actual addition of the listing into the listing.
     """
-    amount = update.message.text
-    if amount.isdigit() == False:
-        await update.message.reply_text(text="Invalid input registered. Please try again. How many cameras do you want to add into the stock?")
-        return ADD_LISTING_SUCCESS
-    newAmount = int(amount)
+
+    #TODO: NEED TO CHANGE TO ADD PHOTOS @GAB
     global camera_choice
     choices = camera_choice.split(" ")
 
@@ -150,20 +128,9 @@ async def handlerAddListingSuccess (update: Update, context: ContextTypes.DEFAUL
     #fetch listings list
     editedListing = listings.listings
 
-    if (choices[1] == "OLD"):
-        #add to the quantity
-        index = int(choices[2])
-        editedListing[index].quantity += newAmount
-        message = ("The camera " + indexCamera.name +
-                   " has added in quantity of " + amount + "\n" +
-                   "Total quantity of camera is now: " + str(editedListing[index].quantity))
-    else:
-        #append to the listing list
-        indexCamera.quantity = newAmount
-        editedListing.append(indexCamera)
-        message = ("The camera " + indexCamera.name +
-                   " is newly added into the listings." + "\n" +
-                   "Total quantity of camera is now: " + amount)
+    editedListing.append(indexCamera)
+    message = ("The camera " + indexCamera.name +
+               " is added into the listings." + "\n")
 
     #make listings the editedListing
     listings.listings = editedListing
@@ -231,83 +198,6 @@ async def handlerDeleteSuccess (update: Update, context: ContextTypes.DEFAULT_TY
 
     await query.edit_message_text(text="Listing: \"" + indexCamera.name + "\" has been removed from the listing.")
     return ConversationHandler.END
-
-
-'''
-=========================================================================
-CHANGE QUANTITY OF LISTINGS FUNCTIONS
-=========================================================================
-'''
-
-async def handlerChangeQTYStart (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """
-    Handles the start of convo with change in quantity for a listing item
-    """
-    query = update.callback_query
-    await query.answer()
-
-    #get listings
-    editedListings = listings.listings
-    keyboard = []
-    #make keyboard
-    i = 0
-    while i < len(editedListings):
-        x = editedListings[i]
-        camera_name = x.name
-        keyboard.append([InlineKeyboardButton(text=camera_name, callback_data=i)])
-        i += 1
-
-    await query.edit_message_text(text="Which camera do you want to change the quantity of?",
-                                   reply_markup=InlineKeyboardMarkup(keyboard))
-    return QUANTITY_CHANGE_CHOSEN
-
-async def handlerChangeQTYChooseQTY (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """
-    Handles the convo where a quantity is required to be inputted
-    """
-    query = update.callback_query
-    await query.answer()
-
-    global camera_choice
-    camera_choice = int(query.data)
-    indexCameraName = listings.listings[camera_choice].name
-
-    await query.edit_message_text(text="Okay cool! You chosen: " + indexCameraName +
-                                    "\nWhat new quantity do you want this camera to have?")
-    return QUANTITY_CHANGE_SUCCESS
-
-async def handlerChangeQTYSuccess (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """
-    Handles the actual change in quantity for that camera in that listing.
-    """
-    amount = update.message.text
-    if amount.isdigit() == False:
-        await update.message.reply_text(text="Invalid input registered. Please try again. What quantity do you want the camera to have?")
-        return QUANTITY_CHANGE_SUCCESS
-
-    newAmount = int(update.message.text)
-    #get listings
-    editedListings = listings.listings
-
-    #get camera choice
-    global camera_choice
-    indexCamera = editedListings[camera_choice]
-
-    message = "Okay! The camera " + indexCamera.name + " has a new quantity of " + str(newAmount)
-    if newAmount == 0:
-        #delete listing due to zero quantity left
-        editedListings.pop(camera_choice)
-        message += "\n The listing has been removed due to there being 0 quantity left."
-    else:
-        editedListings[camera_choice].quantity = newAmount
-
-    #set listings to editedListings
-    listings.listings = editedListings
-    
-    await update.message.reply_text(text=message)
-
-    return ConversationHandler.END
-
 
 async def handlerEditListingCancel (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """

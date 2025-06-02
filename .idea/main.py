@@ -84,15 +84,13 @@ if __name__ == '__main__':
         entry_points=[CommandHandler('editlistings', handlerEditListingStart)],
         states={
             EDIT_LISTING_START: [CallbackQueryHandler(handlerAddListingStart, pattern="^add$"),
-                                 CallbackQueryHandler(handlerChangeQTYStart, pattern="^changeqty$"),
                                  CallbackQueryHandler(handlerDeleteListingStart, pattern="^delete$")],
-            ADD_LISTING_CHOOSE_QTY: [CallbackQueryHandler(handlerAddListingChooseQty)],
-            ADD_LISTING_SUCCESS: [MessageHandler(filters.TEXT & ~filters.COMMAND, handlerAddListingSuccess)],
+            ADD_LISTING_CONFIRM: [CallbackQueryHandler(handlerAddListingConfirmation)],
+            ADD_LISTING_SUCCESS: [CallbackQueryHandler(handlerAddListingSuccess, pattern = "Y"),
+                                  CallbackQueryHandler(handlerAddListingStart, pattern="N")],
             DELETE_LISTING_CHOSEN: [CallbackQueryHandler(handlerDeleteConfirmation)],
             DELETE_LISTING_CONFIRMATION: [CallbackQueryHandler(handlerDeleteListingStart, pattern="N"),
-                                          CallbackQueryHandler(handlerDeleteSuccess, pattern="Y")],
-            QUANTITY_CHANGE_CHOSEN: [CallbackQueryHandler(handlerChangeQTYChooseQTY)],
-            QUANTITY_CHANGE_SUCCESS: [MessageHandler(filters.TEXT & ~filters.COMMAND, handlerChangeQTYSuccess)]
+                                          CallbackQueryHandler(handlerDeleteSuccess, pattern="Y")]
         },
         fallbacks=[CommandHandler('cancel', handlerEditListingCancel)]
     )
@@ -101,11 +99,18 @@ if __name__ == '__main__':
         entry_points=[CommandHandler('cart', handlerCartStart)],
         states={
             CART_EDIT: [CallbackQueryHandler(handlerCartRemoveItem, pattern="^remove$"),
-                        CallbackQueryHandler(handlerCartClearConfirm, pattern="^clear$")],
+                        CallbackQueryHandler(handlerCartClearConfirm, pattern="^clear$"),
+                        CallbackQueryHandler(handlerCartPayConfirmationPage, pattern="^checkout$")],
             CART_REMOVE_CONFIRM: [CallbackQueryHandler(handlerCartRemoveConfirm)],
             CART_REMOVE_COMPLETE: [CallbackQueryHandler(handlerCartRemoveItem, pattern="^back$"),
                                 CallbackQueryHandler(handlerCartRemoveComplete)],
-            CART_CLEAR_COMPLETE: [CallbackQueryHandler(handlerCartClearComplete)]
+            CART_CLEAR_COMPLETE: [CallbackQueryHandler(handlerCartStart, pattern="^back$"),
+                                  CallbackQueryHandler(handlerCartClearComplete)],
+            CART_PAY_CONFIRM: [CallbackQueryHandler(handlerCartStart, pattern="^back$"),
+                               CallbackQueryHandler(handlerCartPay_ChooseDelivery)],
+            CART_PAY_WAITING_PAYMENT: [CallbackQueryHandler(handlerCartPay_Pickup, pattern="^pick-up$"),
+                                       CallbackQueryHandler(handlerCartPay_Delivery, pattern="^delivery$"),
+                                       CallbackQueryHandler(handlerCartPay_Asap, pattern="^ASAP$")]
         },
         fallbacks=[CommandHandler('cancel',handlerCartCancel)]
     )

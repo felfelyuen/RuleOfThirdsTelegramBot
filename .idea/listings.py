@@ -8,9 +8,9 @@ import delivery
 
 def setUpTestListings():
     #listings = []
-    cam1 = Camera("Sony", "Cybershot DSC-WX1", "yes", "", "16.1", 1,169, "This is a Sony Cybershot DSC-WX1\nIt's really good you should buy it\n \nreally really")
-    cam2 = Camera("Nikon", "Coolpix L1", "", "AA", "10",1,189,"This is a Nikon Coolpix L1\nPrice point ONE THOUSAND DOLLARS")
-    cam3 = Camera("Canon", "Ixy 120", "", "", "16", 2, 6969,"This is the Canon Ixy 120\nThis is also a text message")
+    cam1 = Camera("Sony", "Cybershot DSC-WX1", "yes", "", "16.1", 169, "@taylorswif")
+    cam2 = Camera("Nikon", "Coolpix L1", "", "AA", "10",189,"@ethelcain")
+    cam3 = Camera("Canon", "Ixy 120", "", "", "16", 299,"@wannnts")
 
     listings = [cam1, cam2, cam3]
 
@@ -54,7 +54,7 @@ async def handlerListingChoosing(update: Update, context: ContextTypes.DEFAULT_T
 
     global listings
     indexCamera = listings[int(query.data)]
-    camera_message = indexCamera.message + "\nThere are currently " + str(indexCamera.quantity) + " in stock!"
+    camera_message = indexCamera.message
 
     new_keyboard = [[InlineKeyboardButton("Buy!", callback_data=query.data),
                      InlineKeyboardButton("Go Back", callback_data="back")]]
@@ -70,7 +70,6 @@ async def handlerListingBuying_ChooseCharm (update: Update, context: ContextType
     await query.answer()
 
     indexCamera = listings[int(query.data)]
-    indexCamera.quantity = 1
     global userPurchaseInfo
     userPurchaseInfo = PurchaseInfo(indexCamera, "", "", "")
 
