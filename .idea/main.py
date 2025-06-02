@@ -13,7 +13,7 @@ from buyer_listings import *
 from shopping_cart import *
 
 #insert telegram token here
-TELEGRAM_TOKEN = '7028968855:AAGdZvw_--h3Juy_y9w8dWqRD4B7SpU-_9E'
+TELEGRAM_TOKEN = ''
 
 #configs basic logging
 logging.basicConfig(
