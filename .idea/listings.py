@@ -3,8 +3,9 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes, ConversationHandler
 from camera import Camera
 from purchase_info import PurchaseInfo
-from shopping_cart import Cart
+from HashMap import HashMap
 import shopping_cart
+from cart import Cart
 
 def setUpTestListings():
     #listings = []
@@ -18,6 +19,7 @@ def setUpTestListings():
 
 listings = setUpTestListings()
 
+customerPurchaseInfos = HashMap()
 
 LISTING_START, LISTING_CHOOSE_CAMERA, LISTING_AFTERCHOSEN, LISTING_BUYING_ADDON, LISTING_BUYING_CONFIRMATION, LISTING_BUYING_ADDEDTOCART = range(6)
 
@@ -70,8 +72,29 @@ async def handlerListingBuying_ChooseCharm (update: Update, context: ContextType
     await query.answer()
 
     indexCamera = listings[int(query.data)]
-    global userPurchaseInfo
-    userPurchaseInfo = PurchaseInfo(indexCamera, "", "", "")
+    global customerPurchaseInfos
+    telegramID = update.effective_chat.id
+
+    #check if cart is non-empty, if so, stop procedure
+    customerCarts = shopping_cart.customerCarts
+    userCartIndex = customerCarts.findCartIndex(telegramID)
+    if userCartIndex != "NO_ITEM_FOUND":
+        #cart is found and is non-empty. terminate buying procedure:
+        logging.info("non-empty cart found, terminating buying procedure")
+        await context.bot.send_message(chat_id=telegramID,
+                                 text="There are still items in the cart, please buy cameras separately.\nFor group orders, please contact the sellers.")
+        return ConversationHandler.END
+
+    #nothing inside cart, can add into cart
+    logging.info("user has cart in index " + str(userCartIndex) )
+
+    userPurchaseInfo = PurchaseInfo(telegramID, indexCamera, "", "", "")
+    userIndex = customerPurchaseInfos.findCartIndex(telegramID)
+    if userIndex != "NO_ITEM_FOUND":
+        #random/previous information is found, need to replace it
+        customerPurchaseInfos.list[userIndex] == "EMPTY"
+
+    customerPurchaseInfos.insertIntoMap(telegramID, userPurchaseInfo)
 
     charm_keyboard = [[InlineKeyboardButton("Plain", callback_data="Plain"),
                        InlineKeyboardButton("Beaded", callback_data="Beaded"),
@@ -92,8 +115,17 @@ async def handlerListingBuying_ChooseAddOns (update: Update, context: ContextTyp
     """
     query = update.callback_query
     await query.answer()
-    global userPurchaseInfo
-    userPurchaseInfo.strapChoice = query.data
+
+    global customerPurchaseInfos
+    telegramID = update.effective_chat.id
+    userIndex = customerPurchaseInfos.findCartIndex(telegramID)
+    if userIndex == "NO_ITEM_FOUND":
+        #error occured, need to redo
+        await context.bot.send_message(chat_id=update.effective_chat.id,
+                                       text="Unexpected exception occured. Exiting listings. Please try again.")
+        return ConversationHandler.END
+
+    customerPurchaseInfos.list[userIndex].strapChoice = query.data
 
     addon_keyboard = [[InlineKeyboardButton("Yes (lightning cable)", callback_data="lightning"),
                        InlineKeyboardButton("Yes(type C cable)", callback_data="type C")],
@@ -114,12 +146,22 @@ async def handlerListingBuying_Confirmation (update: Update, context: ContextTyp
     query = update.callback_query
     await query.answer()
 
-    global userPurchaseInfo
+    global customerPurchaseInfos
+    telegramID = update.effective_chat.id
+    userIndex = customerPurchaseInfos.findCartIndex(telegramID)
+    if userIndex == "NO_ITEM_FOUND":
+        #error occured, need to redo
+        await context.bot.send_message(chat_id=update.effective_chat.id,
+                                       text="Unexpected exception occured. Exiting listings. Please try again.")
+        return ConversationHandler.END
+
+    userPurchaseInfo = customerPurchaseInfos.list[userIndex]
     sdCardReaderChoice = query.data
-    userPurchaseInfo.sdCardReaderChoice = sdCardReaderChoice
-    userPurchaseInfo.priceAmount = userPurchaseInfo.camera.price
+    customerPurchaseInfos.list[userIndex].sdCardReaderChoice = sdCardReaderChoice
+    customerPurchaseInfos.list[userIndex].priceAmount = userPurchaseInfo.camera.price
     if sdCardReaderChoice != "no" :
-        userPurchaseInfo.priceAmount += 5
+        customerPurchaseInfos.list[userIndex].priceAmount += 5
+
 
     message = ("Do you want to add the camera into your cart?\n\n" +
                "Camera info:\n" +
@@ -147,16 +189,23 @@ async def handlerListingBuying_AddedToCart (update: Update, context: ContextType
     await query.answer()
 
     telegramID = update.effective_chat.id
-    global userPurchaseInfo
-
+    global customerPurchaseInfos
+    telegramID = update.effective_chat.id
+    userIndex = customerPurchaseInfos.findCartIndex(telegramID)
+    if userIndex == "NO_ITEM_FOUND":
+        #error occured, need to redo
+        await context.bot.send_message(chat_id=update.effective_chat.id,
+                                       text="Unexpected exception occured. Exiting listings. Please try again.")
+        return ConversationHandler.END
+    userPurchaseInfo = customerPurchaseInfos.list[userIndex]
     #check if user has a ongoing cart
     customerCarts = shopping_cart.customerCarts
     userCartIndex = customerCarts.findCartIndex(telegramID)
-    if userCartIndex == "NO_CART_FOUND":
+    if userCartIndex == "NO_ITEM_FOUND":
         #no cart is found, need to make a new cart
         logging.info("no cart found, new cart to be made now")
         newCart = Cart(telegramID, [userPurchaseInfo])
-        customerCarts.insertIntoMap(newCart)
+        customerCarts.insertIntoMap(telegramID, newCart)
     else:
         #the user has a cart
         logging.info("user has cart in index " + str(userCartIndex) )

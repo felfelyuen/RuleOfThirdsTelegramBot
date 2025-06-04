@@ -4,15 +4,8 @@ from telegram.ext import ContextTypes, ConversationHandler
 from camera import Camera
 from purchase_info import PurchaseInfo
 import listings
-from customer_cart_list import HashMap
-
-class Cart:
-    """
-    Class for the user's shopping cart
-    """
-    def __init__(self, id, cart):
-        self.id = id #integer
-        self.cart = cart #array of purchase infos
+from HashMap import HashMap
+from cart import Cart
 
 (CART_EDIT,
  CART_REMOVE_CONFIRM, CART_REMOVE_COMPLETE,
@@ -51,7 +44,7 @@ async def handlerCartStart (update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
     global customerCarts
     userCartIndex = customerCarts.findCartIndex(telegramID)
-    if userCartIndex == "NO_CART_FOUND":
+    if userCartIndex == "NO_ITEM_FOUND":
         #no cart is found, need to make a new cart
         logging.info("no cart found")
         await update.message.reply_text("Your cart is\n"

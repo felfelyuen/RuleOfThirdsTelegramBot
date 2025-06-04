@@ -12,16 +12,16 @@ def incre(list, i):
         i = 0
     return i
 
-def insertIntoList(list, i):
+def insertIntoList(list, id, item):
     #i is the Cart of someone
-    index = hashfunction(i.id)
+    index = hashfunction(id)
     #inserting it now
     insertIndex = int(len(list) / 10 * index)
     while (True) :
         if ((list[insertIndex] == "EMPTY") | (list[insertIndex] == "")):
-            list[insertIndex] = i
+            list[insertIndex] = item
             break
-        insertIndex = incre(list, i)
+        insertIndex = incre(list, insertIndex)
 
 def expandList(list):
     newList =[len(list) * 2]
@@ -52,7 +52,7 @@ class HashMap:
         checkIndex = int(len(self.list) /10 * index)
         while (True) :
             if (self.list[checkIndex] == "") :
-                return "NO_CART_FOUND"
+                return "NO_ITEM_FOUND"
             if ((self.list[checkIndex] == "EMPTY")) :
                 checkIndex = incre(self.list, checkIndex)
             elif (self.list[checkIndex].id != id):
@@ -60,8 +60,8 @@ class HashMap:
             else :
                 return checkIndex
 
-    def insertIntoMap(self, i):
-        insertIntoList(self.list, i)
+    def insertIntoMap(self, id, item):
+        insertIntoList(self.list, id, item)
         self.amount += 1
         if (self.amount == len(self.list)):
             self.list = expandList(self.list)

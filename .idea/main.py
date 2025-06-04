@@ -13,7 +13,7 @@ from buyer_listings import *
 from shopping_cart import *
 
 #insert telegram token here
-TELEGRAM_TOKEN = ''
+TELEGRAM_TOKEN = '7028968855:AAGdZvw_--h3Juy_y9w8dWqRD4B7SpU-_9E'
 
 #configs basic logging
 logging.basicConfig(
@@ -27,7 +27,6 @@ async def handlerStart(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     handles /start command
     """
-
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="Welcome to Rule Of Thirds Messaging Bot!\n"
@@ -36,7 +35,6 @@ async def handlerStart(update: Update, context: ContextTypes.DEFAULT_TYPE):
              "/questions ask questions\n"
              "/listings view our listings\n"
              "/cart to view your shopping cart\n"
-             "/checkout to pay and confirm delivery details\n"
              "==================================")
 
 async def handlerUnknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
