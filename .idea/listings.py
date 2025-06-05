@@ -55,13 +55,33 @@ async def handlerListingChoosing(update: Update, context: ContextTypes.DEFAULT_T
     await query.answer()
 
     global listings
-    indexCamera = listings[int(query.data)]
+    index = query.data
+    if ("back" in index):
+        index = query.data[5: ]
+    indexCamera = listings[int(index)]
     camera_message = indexCamera.message
 
     new_keyboard = [[InlineKeyboardButton("Buy!", callback_data=query.data),
-                     InlineKeyboardButton("Go Back", callback_data="back")]]
+                     InlineKeyboardButton("Go Back", callback_data="back"),
+                     InlineKeyboardButton("Enquire about listing", callback_data="qn " + query.data)]]
     await query.edit_message_text(text=camera_message, reply_markup=InlineKeyboardMarkup(new_keyboard))
     return LISTING_AFTERCHOSEN
+
+async def handlerListing_Enquiry (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    To handle the user's questions
+    """
+    query = update.callback_query
+    await query.answer()
+
+    global listings
+    indexCamera = listings[int(query.data[3:])]
+    seller = indexCamera.seller
+    await query.edit_message_text(text=("Please message the seller: " + seller + " to ask your questions about this camera.\n" +
+                                        "(We might not be able to message you due to your privacy settings)\n\n" +
+                                        "Alternatively, for general concerns, please visit the link below for our FAQ!\n" +
+                                        "https://docs.google.com/document/d/1v4ofc_tfiPyNuJWW-iOHLFUolAb5srZfnWqnke90Qlk/edit?tab=t.vhga5eeqazd4"))
+    return ConversationHandler.END
 
 async def handlerListingBuying_ChooseCharm (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
@@ -71,7 +91,12 @@ async def handlerListingBuying_ChooseCharm (update: Update, context: ContextType
     query = update.callback_query
     await query.answer()
 
-    indexCamera = listings[int(query.data)]
+    queryInfo = query.data.split(" ")
+    if (queryInfo[0] == "back"):
+        index = queryInfo[1]
+    else:
+        index = queryInfo[0]
+    indexCamera = listings[int(index)]
     global customerPurchaseInfos
     telegramID = update.effective_chat.id
 
@@ -96,9 +121,9 @@ async def handlerListingBuying_ChooseCharm (update: Update, context: ContextType
 
     customerPurchaseInfos.insertIntoMap(telegramID, userPurchaseInfo)
 
-    charm_keyboard = [[InlineKeyboardButton("Plain", callback_data="Plain"),
-                       InlineKeyboardButton("Beaded", callback_data="Beaded"),
-                       InlineKeyboardButton('Go Back', callback_data="back")]]
+    charm_keyboard = [[InlineKeyboardButton("Plain", callback_data="Plain " + index),
+                       InlineKeyboardButton("Beaded", callback_data="Beaded " + index),
+                       InlineKeyboardButton('Go Back', callback_data="back " + index)]]
     await query.edit_message_text(
         text="Thank you for your interest!\n" 
              "Please fill in the following!\n" 
@@ -116,6 +141,7 @@ async def handlerListingBuying_ChooseAddOns (update: Update, context: ContextTyp
     query = update.callback_query
     await query.answer()
 
+    #get purchase info
     global customerPurchaseInfos
     telegramID = update.effective_chat.id
     userIndex = customerPurchaseInfos.findCartIndex(telegramID)
@@ -125,12 +151,15 @@ async def handlerListingBuying_ChooseAddOns (update: Update, context: ContextTyp
                                        text="Unexpected exception occured. Exiting listings. Please try again.")
         return ConversationHandler.END
 
-    customerPurchaseInfos.list[userIndex].strapChoice = query.data
+    #update strap choice
+    queryInfo = query.data.split(" ")
+    customerPurchaseInfos.list[userIndex].strapChoice = queryInfo[0]
 
-    addon_keyboard = [[InlineKeyboardButton("Yes (lightning cable)", callback_data="lightning"),
-                       InlineKeyboardButton("Yes(type C cable)", callback_data="type C")],
+    #set up keyboard
+    addon_keyboard = [[InlineKeyboardButton("Yes (lightning cable)", callback_data="lightning " + queryInfo[1]),
+                       InlineKeyboardButton("Yes(type C cable)", callback_data="type-C " + queryInfo[1])],
                        [InlineKeyboardButton("No", callback_data="no"),
-                        InlineKeyboardButton("Go Back", callback_data='back')]]
+                        InlineKeyboardButton("Go Back", callback_data='back ' + queryInfo[1])]]
     await query.edit_message_text(
         text="Next, would you like a SD card reader? (additional $5)\n"
             "Use /cancel at any time to stop the procedure"
@@ -148,6 +177,12 @@ async def handlerListingBuying_Confirmation (update: Update, context: ContextTyp
 
     global customerPurchaseInfos
     telegramID = update.effective_chat.id
+
+    sdCardReaderChoice = query.data
+    queryInfo = query.data.split(" ")
+    sdCardReaderChoice = queryInfo[0]
+
+    #get the userPurchaseInfo
     userIndex = customerPurchaseInfos.findCartIndex(telegramID)
     if userIndex == "NO_ITEM_FOUND":
         #error occured, need to redo
@@ -155,14 +190,14 @@ async def handlerListingBuying_Confirmation (update: Update, context: ContextTyp
                                        text="Unexpected exception occured. Exiting listings. Please try again.")
         return ConversationHandler.END
 
+    #update userPurchaseInfo
     userPurchaseInfo = customerPurchaseInfos.list[userIndex]
-    sdCardReaderChoice = query.data
     customerPurchaseInfos.list[userIndex].sdCardReaderChoice = sdCardReaderChoice
     customerPurchaseInfos.list[userIndex].priceAmount = userPurchaseInfo.camera.price
     if sdCardReaderChoice != "no" :
         customerPurchaseInfos.list[userIndex].priceAmount += 5
 
-
+    #set up message and keyboard
     message = ("Do you want to add the camera into your cart?\n\n" +
                "Camera info:\n" +
                "==================================\n" +
@@ -173,7 +208,8 @@ async def handlerListingBuying_Confirmation (update: Update, context: ContextTyp
                "==================================" + "\n" +
                "Use /cancel to stop the procedure, or press back to go back to add-on selection")
     keyboard = [[InlineKeyboardButton("Add to Cart", callback_data="yes"),
-                 InlineKeyboardButton("Go Back", callback_data="back")]]
+                 InlineKeyboardButton("Go Back", callback_data=sdCardReaderChoice + " " + queryInfo[1])]]
+
     await query.edit_message_text(
         text=message,
         reply_markup=InlineKeyboardMarkup(keyboard)

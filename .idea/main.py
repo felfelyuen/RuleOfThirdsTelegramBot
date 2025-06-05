@@ -7,7 +7,6 @@ from telegram.ext import (
     CommandHandler,
     ConversationHandler,
     MessageHandler, CallbackQueryHandler)
-from handleQuestion import *
 from listings import *
 from buyer_listings import *
 from shopping_cart import *
@@ -32,9 +31,9 @@ async def handlerStart(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text="Welcome to Rule Of Thirds Messaging Bot!\n"
              "What would you like to do today?\n\n"
              "==================================\n"
-             "/questions ask questions\n"
-             "/listings view our listings\n"
-             "/cart to view your shopping cart\n"
+             "/listings to view our listings and add to cart\n"
+             "/cart to view your shopping cart and checkout\n"
+             "/FAQ to view our FAQs\n"
              "==================================")
 
 async def handlerUnknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -45,21 +44,22 @@ async def handlerUnknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id=update.effective_chat.id,
         text="Sorry, I didn't understand that command.")
 
+async def handlerQuestionShowFAQ(update:Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    shows FAQs
+    """
+    await context.bot.send_message(
+        chat_id = update.effective_chat.id,
+        text="Please visit the link below for our FAQ!\n" +
+             "https://docs.google.com/document/d/1v4ofc_tfiPyNuJWW-iOHLFUolAb5srZfnWqnke90Qlk/edit?tab=t.vhga5eeqazd4"
+    )
+
 if __name__ == '__main__':
     application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 
     #initialise the commands
     start_handler = CommandHandler('start', handlerStart)
     unknown_handler = MessageHandler(filters.COMMAND, handlerUnknown)
-    question_handler = ConversationHandler(
-        entry_points=[CommandHandler('questions', handlerQuestionStart)],
-        states={
-            QUESTION_START: [MessageHandler(filters.TEXT & ~filters.COMMAND, handlerQuestionAskSeller),
-                             CommandHandler('FAQ', handlerQuestionShowFAQ)]
-
-        },
-        fallbacks=[CommandHandler('cancel', handlerQuestionFallback)]
-    )
     FAQ_handler = CommandHandler('FAQ', handlerQuestionShowFAQ)
 
     listing_handler = ConversationHandler(
@@ -67,13 +67,14 @@ if __name__ == '__main__':
         states={
             LISTING_CHOOSE_CAMERA: [CallbackQueryHandler(handlerListingChoosing)],
             LISTING_AFTERCHOSEN: [CallbackQueryHandler(handlerListingStart, pattern="^back$"),
+                                  CallbackQueryHandler(handlerListing_Enquiry, pattern="qn"),
                                   CallbackQueryHandler(handlerListingBuying_ChooseCharm)],
-            LISTING_BUYING_ADDON: [CallbackQueryHandler(handlerListingChoosing, pattern = "^back$"),
+            LISTING_BUYING_ADDON: [CallbackQueryHandler(handlerListingChoosing, pattern = "back"),
                                    CallbackQueryHandler(handlerListingBuying_ChooseAddOns)],
-            LISTING_BUYING_CONFIRMATION: [CallbackQueryHandler(handlerListingBuying_ChooseCharm, pattern ="^back$"),
+            LISTING_BUYING_CONFIRMATION: [CallbackQueryHandler(handlerListingBuying_ChooseCharm, pattern ="back"),
                                           CallbackQueryHandler(handlerListingBuying_Confirmation)],
-            LISTING_BUYING_ADDEDTOCART: [CallbackQueryHandler(handlerListingBuying_ChooseAddOns, pattern ="^back$"),
-                                         CallbackQueryHandler(handlerListingBuying_AddedToCart)]
+            LISTING_BUYING_ADDEDTOCART: [CallbackQueryHandler(handlerListingBuying_AddedToCart, pattern="^yes$"),
+                                         CallbackQueryHandler(handlerListingBuying_ChooseAddOns)]
         },
         fallbacks=[CommandHandler('cancel', handlerListingFallback)]
     )
@@ -114,7 +115,6 @@ if __name__ == '__main__':
     )
     #add commands
     application.add_handler(start_handler)
-    application.add_handler(question_handler)
     application.add_handler(FAQ_handler)
     application.add_handler(listing_handler)
     application.add_handler(editListings_handler)
