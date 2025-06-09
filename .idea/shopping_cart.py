@@ -14,6 +14,8 @@ from cart import Cart
 
 global customerCarts
 customerCarts = HashMap()
+global pendingPaymentCustomersList
+pendingPaymentCustomersList = []
 
 def printPurchaseInfo (i, info):
     message = ("==================================\n" +
@@ -290,6 +292,8 @@ async def handlerCartPay_Delivery (update: Update, context: ContextTypes.DEFAULT
     await context.bot.send_message(chat_id=update.effective_chat.id, #replace with seller's telegram id
                                    text="Normal delivery for @" + update.effective_chat.username + "\nOrder:\n" + listOfCameras)
 
+    '''
+    #version 1.1
     #tell buyers to fill in
     await query.edit_message_text(text=("The sellers has been notified. Please contact " + userCamera.camera.seller + " and send the following for delivery purposes:" +
                                          "\n(We might not be able to message you due to your privacy settings)"))
@@ -297,6 +301,14 @@ async def handlerCartPay_Delivery (update: Update, context: ContextTypes.DEFAULT
                                    text="DELIVERY INFO:\nName:\nPostal Code:\nAddress:\nUnit No:\nContact No:")
     await context.bot.send_photo(chat_id=update.effective_chat.id,
                                  caption="Additionally, send $" + str(totalPrice) + " to the number INSERTNUMBERHERE, or scan the paynow code\nScreenshot and send to " + userCamera.camera.seller + " as well.",
+                                 photo=open('testpicture.png', 'rb'))
+    '''
+
+    #version 1.2
+    await context.bot.send_photo(chat_id=update.effective_chat.id,
+                                 caption=("The sellers have been notified, please paynow $" + str(totalPrice) + " to the number INSERTNUMBERHERE, or scan the paynow code.\n" +
+                                          "Screenshot proof of payment and send it to " + userCamera.camera.seller + "\n" +
+                                          "Delivery information will be processed after payment is verified."),
                                  photo=open('testpicture.png', 'rb'))
     return ConversationHandler.END
 
@@ -321,6 +333,8 @@ async def handlerCartPay_Asap (update: Update, context: ContextTypes.DEFAULT_TYP
                                    text="ASAP delivery for @" + update.effective_chat.username + "\nOrder:\n" + listOfCameras)
 
     #tell buyers to fill in
+    '''
+    #version 1.1
     await query.edit_message_text(text=("The sellers has been notified. Please contact " + userCamera.camera.seller + " and send the following for delivery purposes:" +
                                         "\n(We might not be able to message you due to your privacy settings)"))
     await context.bot.send_message(chat_id=update.effective_chat.id,
@@ -330,6 +344,15 @@ async def handlerCartPay_Asap (update: Update, context: ContextTypes.DEFAULT_TYP
                                           "Screenshot and send to " + userCamera.camera.seller + " as well.\n" +
                                           "Do note that delivery will not start without the screenshot."),
                                  photo=open('testpicture.png', 'rb'))
+    '''
+
+    #version 1.2
+    await context.bot.send_photo(chat_id=update.effective_chat.id,
+                                 caption=("The sellers have been notified, please paynow $" + str(totalPrice) + " to the number INSERTNUMBERHERE, or scan the paynow code.\n" +
+                                          "Screenshot proof of payment and send it to " + userCamera.camera.seller + "\n" +
+                                          "Delivery information will be processed after payment is verified."),
+                                 photo=open('testpicture.png', 'rb'))
+
     return ConversationHandler.END
 
 async def handlerCartCancel (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
