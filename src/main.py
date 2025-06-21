@@ -8,6 +8,7 @@ from telegram.ext import (
     ConversationHandler,
     MessageHandler, CallbackQueryHandler)
 from login import get_user_role
+from catalogue import *
 from handleQuestion import *
 from listings import *
 from buyer_listings import *
@@ -56,7 +57,12 @@ async def handlerUnknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text="Sorry, I didn't understand that command.")
 
 if __name__ == '__main__':
-    application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+    application = ApplicationBuilder()\
+    .token(TELEGRAM_TOKEN)\
+    .read_timeout(30)\
+    .write_timeout(30)\
+    .connect_timeout(10)\
+    .build()
 
     #initialise the commands
     start_handler = CommandHandler('start', handlerStart)
@@ -100,13 +106,48 @@ if __name__ == '__main__':
         },
         fallbacks=[CommandHandler('cancel', handlerEditListingCancel)]
     )
+
+    manage_catalogue_handler = CommandHandler('manageCatalogue', handlerManageCatalogue)
+    view_catalogue_handler = CommandHandler('viewCatalogue', handlerViewCatalogue)
+    addCatalogue_handler = ConversationHandler(
+    entry_points=[CommandHandler('addtoCatalogue', handlerAddToCatalogueStart)],
+        states={
+            ADD_ID: [MessageHandler(filters.TEXT & ~filters.COMMAND, handlerAddToCatalogueID)],
+            ADD_BRAND: [MessageHandler(filters.TEXT & ~filters.COMMAND, handlerAddToCatalogueBrand)],
+            ADD_MODEL: [MessageHandler(filters.TEXT & ~filters.COMMAND, handlerAddToCatalogueModel)],
+            ADD_JAPANESE: [MessageHandler(filters.TEXT & ~filters.COMMAND, handlerAddToCatalogueJapanese)],
+            ADD_BATTERY: [MessageHandler(filters.TEXT & ~filters.COMMAND, handlerAddToCatalogueBattery)],
+            ADD_MEGAPIXEL: [MessageHandler(filters.TEXT & ~filters.COMMAND, handlerAddToCatalogueMegapixel)],
+            ADD_IMAGE1: [MessageHandler(filters.TEXT & ~filters.COMMAND, handlerAddToCatalogueImage1)],
+            ADD_IMAGE2: [MessageHandler(filters.TEXT & ~filters.COMMAND, handlerAddToCatalogueImage2)],   
+            ADD_VIDEO: [MessageHandler(filters.TEXT & ~filters.COMMAND, handlerAddToCatalogueVideo)],
+        },
+        fallbacks=[CommandHandler('cancel', handlerAddToCatalogueCancel)]
+    )
+
+    editCamera_handler = ConversationHandler(
+        entry_points=[CallbackQueryHandler(handlerEditCamera, pattern="^edit_")],
+        states={
+            EDIT_SELECT_FIELD: [CallbackQueryHandler(handlerEditChooseField, pattern="^editfield_")],
+            EDIT_INPUT_VALUE: [MessageHandler(filters.TEXT & ~filters.COMMAND, handlerEditSave)]
+        },
+        fallbacks=[CommandHandler("cancel", handlerEditCancel)]
+    )
+
     #add commands
     application.add_handler(start_handler)
     application.add_handler(question_handler)
     application.add_handler(FAQ_handler)
     application.add_handler(listing_handler)
     application.add_handler(editListings_handler)
-
+    application.add_handler(manage_catalogue_handler)
+    application.add_handler(view_catalogue_handler)
+    application.add_handler(CallbackQueryHandler(handlerViewBrand, pattern="^brand_"))
+    application.add_handler(CallbackQueryHandler(handlerViewCameraDetails, pattern="^camera_"))
+    application.add_handler(editCamera_handler)
+    application.add_handler(CallbackQueryHandler(handlerRemoveCamera, pattern="^remove_"))
+    application.add_handler(CallbackQueryHandler(handlerConfirmRemove, pattern="^confirm_remove_"))
+    application.add_handler(addCatalogue_handler)
 
     #default commands (do not put unknown_handler above other handlers)
     application.add_handler(unknown_handler)
