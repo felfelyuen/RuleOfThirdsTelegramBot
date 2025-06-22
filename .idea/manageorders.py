@@ -26,4 +26,4 @@ async def manageOrders_Start (update: Update, context: ContextTypes.DEFAULT_TYPE
     await update.message.reply_text(text="What do you want to do today?", reply_markup=InlineKeyboardMarkup(keyboard))
     return MANAGE_ORDER_START
 
-async def manageOrders_ConfirmDelivery (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+# async def manageOrders_ConfirmDelivery (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
