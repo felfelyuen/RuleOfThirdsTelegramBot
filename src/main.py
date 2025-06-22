@@ -7,11 +7,15 @@ from telegram.ext import (
     CommandHandler,
     ConversationHandler,
     MessageHandler, CallbackQueryHandler)
+from login import get_user_role
+from handleQuestion import *
 from listings import *
 from buyer_listings import *
 from shopping_cart import *
 
 #insert telegram token here
+    #felix key: 8131399573:AAGYyedk735WuHa7SRcoxiKGx4lChQ7-0Vk
+    #gab key: 7825728929:AAGXm4iEX14ly4fQo2GIpkv9ZRuLpRDgvPc
 TELEGRAM_TOKEN = ''
 
 #configs basic logging
@@ -26,15 +30,27 @@ async def handlerStart(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     handles /start command
     """
-    await context.bot.send_message(
+    user_id = update.effective_user.id
+    user_role = get_user_role(user_id)
+
+    if user_role == "buyer":
+        #display buyer menu
+        await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="Welcome to Rule Of Thirds Messaging Bot!\n"
              "What would you like to do today?\n\n"
-             "==================================\n"
-             "/listings to view our listings and add to cart\n"
-             "/cart to view your shopping cart and checkout\n"
-             "/FAQ to view our FAQs\n"
-             "==================================")
+                 "==================================\n"
+                 "/listings to view our listings and add to cart\n"
+                 "/cart to view your shopping cart and checkout\n"
+                 "/FAQ to view our FAQs\n"
+                 "==================================")
+    else:
+        #display seller menu
+        await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="Welcome to Rule Of Thirds Messaging Bot! What would you like to do today?\n"+
+             "/manageListings manage listings\n"
+             "/manageCatalogue manage catalogue")
 
 async def handlerUnknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """

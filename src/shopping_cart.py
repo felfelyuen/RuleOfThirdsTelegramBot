@@ -271,7 +271,7 @@ async def handlerCartPay_Pickup (update: Update, context: ContextTypes.DEFAULT_T
 
     await context.bot.send_photo(chat_id=update.effective_chat.id,
                                  caption="Additionally, send $" + str(totalPrice) + " to the number INSERTNUMBERHERE, or scan the paynow code\nScreenshot and send to " + userCamera.camera.seller + " as well.",
-                                 photo=open('testpicture.png', 'rb'))
+                                 photo=open('../.idea/testpicture.png', 'rb'))
     return ConversationHandler.END
 
 async def handlerCartPay_Delivery (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -309,7 +309,7 @@ async def handlerCartPay_Delivery (update: Update, context: ContextTypes.DEFAULT
                                  caption=("The sellers have been notified, please paynow $" + str(totalPrice) + " to the number INSERTNUMBERHERE, or scan the paynow code.\n" +
                                           "Screenshot proof of payment and send it to " + userCamera.camera.seller + "\n" +
                                           "Delivery information will be processed after payment is verified."),
-                                 photo=open('testpicture.png', 'rb'))
+                                 photo=open('../.idea/testpicture.png', 'rb'))
     return ConversationHandler.END
 
 async def handlerCartPay_Asap (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -351,7 +351,7 @@ async def handlerCartPay_Asap (update: Update, context: ContextTypes.DEFAULT_TYP
                                  caption=("The sellers have been notified, please paynow $" + str(totalPrice) + " to the number INSERTNUMBERHERE, or scan the paynow code.\n" +
                                           "Screenshot proof of payment and send it to " + userCamera.camera.seller + "\n" +
                                           "Delivery information will be processed after payment is verified."),
-                                 photo=open('testpicture.png', 'rb'))
+                                 photo=open('../.idea/testpicture.png', 'rb'))
 
     return ConversationHandler.END
 
