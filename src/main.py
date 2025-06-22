@@ -11,11 +11,12 @@ from login import get_user_role
 from handleQuestion import *
 from listings import *
 from buyer_listings import *
+from shopping_cart import *
 
 #insert telegram token here
     #felix key: 8131399573:AAGYyedk735WuHa7SRcoxiKGx4lChQ7-0Vk
     #gab key: 7825728929:AAGXm4iEX14ly4fQo2GIpkv9ZRuLpRDgvPc
-TELEGRAM_TOKEN = '7825728929:AAGXm4iEX14ly4fQo2GIpkv9ZRuLpRDgvPc'
+TELEGRAM_TOKEN = ''
 
 #configs basic logging
 logging.basicConfig(
@@ -36,9 +37,13 @@ async def handlerStart(update: Update, context: ContextTypes.DEFAULT_TYPE):
         #display buyer menu
         await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="Welcome to Rule Of Thirds Messaging Bot! What would you like to do today?\n"+
-             "/questions ask questions\n"
-             "/listings view our listings\n")
+        text="Welcome to Rule Of Thirds Messaging Bot!\n"
+             "What would you like to do today?\n\n"
+                 "==================================\n"
+                 "/listings to view our listings and add to cart\n"
+                 "/cart to view your shopping cart and checkout\n"
+                 "/FAQ to view our FAQs\n"
+                 "==================================")
     else:
         #display seller menu
         await context.bot.send_message(
@@ -55,21 +60,22 @@ async def handlerUnknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id=update.effective_chat.id,
         text="Sorry, I didn't understand that command.")
 
+async def handlerQuestionShowFAQ(update:Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    shows FAQs
+    """
+    await context.bot.send_message(
+        chat_id = update.effective_chat.id,
+        text="Please visit the link below for our FAQ!\n" +
+             "https://docs.google.com/document/d/1v4ofc_tfiPyNuJWW-iOHLFUolAb5srZfnWqnke90Qlk/edit?tab=t.vhga5eeqazd4"
+    )
+
 if __name__ == '__main__':
     application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 
     #initialise the commands
     start_handler = CommandHandler('start', handlerStart)
     unknown_handler = MessageHandler(filters.COMMAND, handlerUnknown)
-    question_handler = ConversationHandler(
-        entry_points=[CommandHandler('questions', handlerQuestionStart)],
-        states={
-            QUESTION_START: [MessageHandler(filters.TEXT & ~filters.COMMAND, handlerQuestionAskSeller),
-                             CommandHandler('FAQ', handlerQuestionShowFAQ)]
-
-        },
-        fallbacks=[CommandHandler('cancel', handlerQuestionFallback)]
-    )
     FAQ_handler = CommandHandler('FAQ', handlerQuestionShowFAQ)
 
     listing_handler = ConversationHandler(
@@ -77,9 +83,14 @@ if __name__ == '__main__':
         states={
             LISTING_CHOOSE_CAMERA: [CallbackQueryHandler(handlerListingChoosing)],
             LISTING_AFTERCHOSEN: [CallbackQueryHandler(handlerListingStart, pattern="^back$"),
-                                  CallbackQueryHandler(handlerListingBuying_ChooseCharm, pattern ="^buy$")],
-            LISTING_BUYING_ADDON: [CallbackQueryHandler(handlerListingBuying_ChooseAddOns)],
-            LISTING_BUYING_PAYMENT: [CallbackQueryHandler(handlerListingBuying_Payment)]
+                                  CallbackQueryHandler(handlerListing_Enquiry, pattern="qn"),
+                                  CallbackQueryHandler(handlerListingBuying_ChooseCharm)],
+            LISTING_BUYING_ADDON: [CallbackQueryHandler(handlerListingChoosing, pattern = "back"),
+                                   CallbackQueryHandler(handlerListingBuying_ChooseAddOns)],
+            LISTING_BUYING_CONFIRMATION: [CallbackQueryHandler(handlerListingBuying_ChooseCharm, pattern ="back"),
+                                          CallbackQueryHandler(handlerListingBuying_Confirmation)],
+            LISTING_BUYING_ADDEDTOCART: [CallbackQueryHandler(handlerListingBuying_AddedToCart, pattern="^yes$"),
+                                         CallbackQueryHandler(handlerListingBuying_ChooseAddOns)]
         },
         fallbacks=[CommandHandler('cancel', handlerListingFallback)]
     )
@@ -88,24 +99,42 @@ if __name__ == '__main__':
         entry_points=[CommandHandler('editlistings', handlerEditListingStart)],
         states={
             EDIT_LISTING_START: [CallbackQueryHandler(handlerAddListingStart, pattern="^add$"),
-                                 CallbackQueryHandler(handlerChangeQTYStart, pattern="^changeqty$"),
                                  CallbackQueryHandler(handlerDeleteListingStart, pattern="^delete$")],
-            ADD_LISTING_CHOOSE_QTY: [CallbackQueryHandler(handlerAddListingChooseQty)],
-            ADD_LISTING_SUCCESS: [MessageHandler(filters.TEXT & ~filters.COMMAND, handlerAddListingSuccess)],
+            ADD_LISTING_CONFIRM: [CallbackQueryHandler(handlerAddListingConfirmation)],
+            ADD_LISTING_SUCCESS: [CallbackQueryHandler(handlerAddListingSuccess, pattern = "Y"),
+                                  CallbackQueryHandler(handlerAddListingStart, pattern="N")],
             DELETE_LISTING_CHOSEN: [CallbackQueryHandler(handlerDeleteConfirmation)],
             DELETE_LISTING_CONFIRMATION: [CallbackQueryHandler(handlerDeleteListingStart, pattern="N"),
-                                          CallbackQueryHandler(handlerDeleteSuccess, pattern="Y")],
-            QUANTITY_CHANGE_CHOSEN: [CallbackQueryHandler(handlerChangeQTYChooseQTY)],
-            QUANTITY_CHANGE_SUCCESS: [MessageHandler(filters.TEXT & ~filters.COMMAND, handlerChangeQTYSuccess)]
+                                          CallbackQueryHandler(handlerDeleteSuccess, pattern="Y")]
         },
         fallbacks=[CommandHandler('cancel', handlerEditListingCancel)]
     )
+
+    cart_handler = ConversationHandler(
+        entry_points=[CommandHandler('cart', handlerCartStart)],
+        states={
+            CART_EDIT: [CallbackQueryHandler(handlerCartRemoveItem, pattern="^remove$"),
+                        CallbackQueryHandler(handlerCartClearConfirm, pattern="^clear$"),
+                        CallbackQueryHandler(handlerCartPayConfirmationPage, pattern="^checkout$")],
+            CART_REMOVE_CONFIRM: [CallbackQueryHandler(handlerCartRemoveConfirm)],
+            CART_REMOVE_COMPLETE: [CallbackQueryHandler(handlerCartRemoveItem, pattern="^back$"),
+                                CallbackQueryHandler(handlerCartRemoveComplete)],
+            CART_CLEAR_COMPLETE: [CallbackQueryHandler(handlerCartStart, pattern="^back$"),
+                                  CallbackQueryHandler(handlerCartClearComplete)],
+            CART_PAY_CONFIRM: [CallbackQueryHandler(handlerCartStart, pattern="^back$"),
+                               CallbackQueryHandler(handlerCartPay_ChooseDelivery)],
+            CART_PAY_WAITING_PAYMENT: [CallbackQueryHandler(handlerCartPay_Pickup, pattern="^pick-up$"),
+                                       CallbackQueryHandler(handlerCartPay_Delivery, pattern="^delivery$"),
+                                       CallbackQueryHandler(handlerCartPay_Asap, pattern="^ASAP$")]
+        },
+        fallbacks=[CommandHandler('cancel',handlerCartCancel)]
+    )
     #add commands
     application.add_handler(start_handler)
-    application.add_handler(question_handler)
     application.add_handler(FAQ_handler)
     application.add_handler(listing_handler)
     application.add_handler(editListings_handler)
+    application.add_handler(cart_handler)
 
 
     #default commands (do not put unknown_handler above other handlers)
