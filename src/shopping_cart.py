@@ -6,15 +6,15 @@ from purchase_info import PurchaseInfo
 import listings
 from HashMap import HashMap
 from cart import Cart
+import manageorders
+from DeliveryInfo import DeliveryInfo
 
 (CART_EDIT,
  CART_REMOVE_CONFIRM, CART_REMOVE_COMPLETE,
  CART_CLEAR_COMPLETE,
  CART_PAY_CONFIRM, CART_PAY_WAITING_PAYMENT) = range(6)
 
-global customerCarts
 customerCarts = HashMap()
-global pendingPaymentCustomersList
 pendingPaymentCustomersList = []
 
 def printPurchaseInfo (i, info):
@@ -203,7 +203,7 @@ async def handlerCartPayConfirmationPage (update: Update, context: ContextTypes.
     message = ("Please confirm order before proceeding with checkout :)\n\n" +
                listOfCameras + "\n" +
                "Total price: " + str(totalPrice))
-    keyboard = [[InlineKeyboardButton("yes", callback_data="Y"),
+    keyboard = [[InlineKeyboardButton("Yes", callback_data="Y"),
                  InlineKeyboardButton("No (go back)", callback_data="back")]]
 
     await query.edit_message_text(text= message,
@@ -264,9 +264,14 @@ async def handlerCartPay_Pickup (update: Update, context: ContextTypes.DEFAULT_T
     userCamera = userCart[0] #only one camera per transaction
     listOfCameras, totalPrice = printCart(userCart)
 
+    #inform sellers
+    newDeliveryInfo = DeliveryInfo(telegramID, update.effective_chat.username, "", "", "", "", "", 'pickup', listOfCameras, totalPrice)
+    manageorders.listOfUnpaidOrders.append(newDeliveryInfo)
+
     await context.bot.send_message(chat_id=update.effective_chat.id, #replace with seller's telegram id
                                    text="pick-up for @" + update.effective_chat.username + "\nOrder:\n" + listOfCameras)
 
+    #inform buyers
     await query.edit_message_text(text="The sellers has been notified. Please contact " + userCamera.camera.seller + "to work out the pick-up details.\n(We might not be able to message you due to your privacy settings)")
 
     await context.bot.send_photo(chat_id=update.effective_chat.id,
@@ -288,13 +293,16 @@ async def handlerCartPay_Delivery (update: Update, context: ContextTypes.DEFAULT
 
     userCamera = userCart[0] #only one camera per transaction
     listOfCameras, totalPrice = printCart(userCart)
+
     #inform sellers
+    newDeliveryInfo = DeliveryInfo(telegramID, update.effective_chat.username, "", "", "", "", "", 'delivery', listOfCameras, totalPrice)
+    manageorders.listOfUnpaidOrders.append(newDeliveryInfo)
+
     await context.bot.send_message(chat_id=update.effective_chat.id, #replace with seller's telegram id
                                    text="Normal delivery for @" + update.effective_chat.username + "\nOrder:\n" + listOfCameras)
-
+    #inform buyers
     '''
     #version 1.1
-    #tell buyers to fill in
     await query.edit_message_text(text=("The sellers has been notified. Please contact " + userCamera.camera.seller + " and send the following for delivery purposes:" +
                                          "\n(We might not be able to message you due to your privacy settings)"))
     await context.bot.send_message(chat_id=update.effective_chat.id,
@@ -305,6 +313,7 @@ async def handlerCartPay_Delivery (update: Update, context: ContextTypes.DEFAULT
     '''
 
     #version 1.2
+
     await context.bot.send_photo(chat_id=update.effective_chat.id,
                                  caption=("The sellers have been notified, please paynow $" + str(totalPrice) + " to the number INSERTNUMBERHERE, or scan the paynow code.\n" +
                                           "Screenshot proof of payment and send it to " + userCamera.camera.seller + "\n" +
@@ -328,11 +337,15 @@ async def handlerCartPay_Asap (update: Update, context: ContextTypes.DEFAULT_TYP
     listOfCameras, totalPrice = printCart(userCart)
 
     totalPrice += 5
+
     #inform sellers
+    newDeliveryInfo = DeliveryInfo(telegramID, update.effective_chat.username, "", "", "", "", "", 'asap', listOfCameras, totalPrice)
+    manageorders.listOfUnpaidOrders.append(newDeliveryInfo)
+
     await context.bot.send_message(chat_id=update.effective_chat.id, #replace with seller's telegram id
                                    text="ASAP delivery for @" + update.effective_chat.username + "\nOrder:\n" + listOfCameras)
 
-    #tell buyers to fill in
+    #inform buyers
     '''
     #version 1.1
     await query.edit_message_text(text=("The sellers has been notified. Please contact " + userCamera.camera.seller + " and send the following for delivery purposes:" +

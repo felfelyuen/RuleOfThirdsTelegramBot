@@ -158,7 +158,7 @@ async def handlerListingBuying_ChooseAddOns (update: Update, context: ContextTyp
     #set up keyboard
     addon_keyboard = [[InlineKeyboardButton("Yes (lightning cable)", callback_data="lightning " + queryInfo[1]),
                        InlineKeyboardButton("Yes(type C cable)", callback_data="type-C " + queryInfo[1])],
-                       [InlineKeyboardButton("No", callback_data="no"),
+                       [InlineKeyboardButton("No", callback_data="no " + queryInfo[1]),
                         InlineKeyboardButton("Go Back", callback_data='back ' + queryInfo[1])]]
     await query.edit_message_text(
         text="Next, would you like a SD card reader? (additional $5)\n"
@@ -249,7 +249,7 @@ async def handlerListingBuying_AddedToCart (update: Update, context: ContextType
 
     shopping_cart.customerCarts = customerCarts
     message = ("Camera has been added into your cart!\n"
-               "Please use /cart to view your shopping cart, and use /checkout to pay and confirm delivery details. :)")
+               "Please use /cart to view your shopping cart and checkout to pay. :)")
 
     await query.edit_message_text(text=message)
     return ConversationHandler.END

@@ -12,6 +12,8 @@ from handleQuestion import *
 from listings import *
 from buyer_listings import *
 from shopping_cart import *
+from manageorders import *
+from delivery import *
 
 #insert telegram token here
     #felix key: 8131399573:AAGYyedk735WuHa7SRcoxiKGx4lChQ7-0Vk
@@ -56,6 +58,7 @@ async def handlerUnknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     handles unknown commands
     """
+    logging.info(update.message.text)
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="Sorry, I didn't understand that command.")
@@ -129,14 +132,37 @@ if __name__ == '__main__':
         },
         fallbacks=[CommandHandler('cancel',handlerCartCancel)]
     )
+
+    manageorders_handler = ConversationHandler(
+        entry_points=[CommandHandler('manageorders', manageOrders_Start)],
+        states={
+            MANAGE_ORDER_START: [CallbackQueryHandler(manageOrders_verifyPayment_listCustomers, pattern="^verify$"),
+                                 CallbackQueryHandler(manageOrders_cancel)],
+            MANAGE_ORDER_PAYMENT_CONFIRMATION: [CallbackQueryHandler(manageOrders_Start, pattern="^back$"),
+                                                CallbackQueryHandler(manageOrders_verifyPayment_Confirmation)],
+            MANAGE_ORDER_DELIVERY_INFO_ASKED: [CallbackQueryHandler(manageOrders_verifyPayment_listCustomers, pattern="^back$"),
+                                               CallbackQueryHandler(manageOrders_askCustomerForDeliveryInfo)]
+        },
+        fallbacks=[CommandHandler('cancel',manageOrders_cancel)]
+    )
+
+    delivery_handler = ConversationHandler(
+        entry_points=[CommandHandler('delivery', delivery_start)],
+        states={
+            DELIVERY_START: [CallbackQueryHandler(delivery_fillInInfo)],
+            DELIVERY_ASKING_INFO: [MessageHandler(filters.COMMAND, delivery_submitToEasyParcel)]
+        },
+        fallbacks=[CommandHandler('cancel',manageOrders_cancel)]
+    )
     #add commands
     application.add_handler(start_handler)
     application.add_handler(FAQ_handler)
     application.add_handler(listing_handler)
     application.add_handler(editListings_handler)
     application.add_handler(cart_handler)
-
-
+    application.add_handler(manageorders_handler)
+    application.add_handler(delivery_handler
+                            )
     #default commands (do not put unknown_handler above other handlers)
     application.add_handler(unknown_handler)
 
