@@ -10,7 +10,6 @@ for the buyer to fill in delivery information to proceed with the delivery
 '''
 
 DELIVERY_START, DELIVERY_ASKING_INFO = range(2)
-listOfDeliveryOrders = []
 
 async def delivery_start (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
@@ -50,21 +49,31 @@ async def delivery_fillInInfo (update: Update, context: ContextTypes.DEFAULT_TYP
                                    ,text="DELIVERY INFO:\nName:\nPostal Code:\nAddress:\nUnit No:\nContact No:")
     return DELIVERY_ASKING_INFO
 
-async def delivery_submitToEasyParcel (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    infoReceived = update.message.text
-    logging.info(infoReceived)
-    infoReceived = infoReceived.split("\n")
-
+async def delivery_confirmDeliveryInfo (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    confirms the delivery information, and updates the user's DeliveryInfo class
+    """
+    infoReceived = update.message.text.split("\n")
     paidOrders = manageorders.listOfPaidOrders
     i = findOrder(paidOrders, update.effective_chat.id)
 
     #fill in information
-    paidOrders[i].name = (infoReceived[1].split(":"))[1]
-    paidOrders[i].postalcode = (infoReceived[2].split(":"))[1]
-    paidOrders[i].address = (infoReceived[3].split(":"))[1]
-    paidOrders[i].unitnumber = (infoReceived[4].split(":"))[1]
-    paidOrders[i].contactnumber = (infoReceived[5].split(":"))[1]
+    paidOrders[i].name = (infoReceived[1].split(":"))[1].strip()
+    logging.info(paidOrders[i].name)
+    paidOrders[i].postalcode = (infoReceived[2].split(":"))[1].strip()
+    logging.info(paidOrders[i].postalcode)
+    paidOrders[i].address = (infoReceived[3].split(":"))[1].strip()
+    logging.info(paidOrders[i].address)
+    paidOrders[i].unitnumber = (infoReceived[4].split(":"))[1].strip()
+    logging.info(paidOrders[i].unitnumber)
+    paidOrders[i].contactnumber = (infoReceived[5].split(":"))[1].strip()
+    logging.info(paidOrders[i].contactnumber)
 
+    #add into deliveryOrders
+    manageorders.listOfDeliveryOrders.append(paidOrders[i])
+    #remove from paidOrders
+    manageorders.listOfPaidOrders.pop(i)
+    '''
     api_key = manageorders.api_key
     auth_key = manageorders.authentication_key
 
@@ -76,9 +85,9 @@ async def delivery_submitToEasyParcel (update: Update, context: ContextTypes.DEF
         'authentication': auth_key,
         'api': api_key,
         'bulk': [{
-            "pick_code": "",
+            "pick_code": paidOrders[i].postalcode,
             "pick_country": "SG",
-            "send_code": "",
+            "send_code": "510709",
             "send_country": "SG",
             "weight": 0.2
         }]
@@ -92,6 +101,11 @@ async def delivery_submitToEasyParcel (update: Update, context: ContextTypes.DEF
     response = requests.post(url, json=postparam, headers=headers)
 
     logging.info(response.json())
-
-    await update.message.reply_text(text="it worked?")
+    '''
+    await update.message.reply_text(text=("You have inputted the following:\n\n"
+                                          + update.message.text +
+                                          "\n\nIf this is incorrect, please message our seller @" + paidOrders[i].purchaseInfo.camera.seller.username + " as soon as possible. "))
+    await context.bot.send_message(chat_id=paidOrders[i].purchaseInfo.camera.seller.id,
+                                   text=("@" + paidOrders[i].username + "has submitted their delivery information. Please choose the delivery option.\n" +
+                                         paidOrders[i].type + " of delivery required."))
     return ConversationHandler.END

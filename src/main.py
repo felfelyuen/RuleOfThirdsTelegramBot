@@ -18,7 +18,7 @@ from delivery import *
 #insert telegram token here
     #felix key: 8131399573:AAGYyedk735WuHa7SRcoxiKGx4lChQ7-0Vk
     #gab key: 7825728929:AAGXm4iEX14ly4fQo2GIpkv9ZRuLpRDgvPc
-TELEGRAM_TOKEN = ''
+TELEGRAM_TOKEN = '7028968855:AAGdZvw_--h3Juy_y9w8dWqRD4B7SpU-_9E'
 
 #configs basic logging
 logging.basicConfig(
@@ -58,7 +58,6 @@ async def handlerUnknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     handles unknown commands
     """
-    logging.info(update.message.text)
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="Sorry, I didn't understand that command.")
@@ -150,7 +149,7 @@ if __name__ == '__main__':
         entry_points=[CommandHandler('delivery', delivery_start)],
         states={
             DELIVERY_START: [CallbackQueryHandler(delivery_fillInInfo)],
-            DELIVERY_ASKING_INFO: [MessageHandler(filters.COMMAND, delivery_submitToEasyParcel)]
+            DELIVERY_ASKING_INFO: [MessageHandler(filters.TEXT, delivery_confirmDeliveryInfo)]
         },
         fallbacks=[CommandHandler('cancel',manageOrders_cancel)]
     )
@@ -161,8 +160,8 @@ if __name__ == '__main__':
     application.add_handler(editListings_handler)
     application.add_handler(cart_handler)
     application.add_handler(manageorders_handler)
-    application.add_handler(delivery_handler
-                            )
+    application.add_handler(delivery_handler)
+
     #default commands (do not put unknown_handler above other handlers)
     application.add_handler(unknown_handler)
 

@@ -6,12 +6,13 @@ from purchase_info import PurchaseInfo
 from HashMap import HashMap
 import shopping_cart
 from cart import Cart
+from seller_info import Seller
 
 def setUpTestListings():
-    #listings = []
-    cam1 = Camera("Sony", "Cybershot DSC-WX1", "yes", "", "16.1", 169, "@taylorswif")
-    cam2 = Camera("Nikon", "Coolpix L1", "", "AA", "10",189,"@ethelcain")
-    cam3 = Camera("Canon", "Ixy 120", "", "", "16", 299,"@wannnts")
+    seller1 = Seller(796353209, "falafelyuen", "Felix Yuen", "462153", "153B Bedok South Road #11-402", "+6594685756")
+    cam1 = Camera("Sony", "Cybershot DSC-WX1", "yes", "", "16.1", 169, seller1)
+    cam2 = Camera("Nikon", "Coolpix L1", "", "AA", "10",189, seller1)
+    cam3 = Camera("Canon", "Ixy 120", "", "", "16", 299, seller1)
 
     listings = [cam1, cam2, cam3]
 
@@ -77,7 +78,7 @@ async def handlerListing_Enquiry (update: Update, context: ContextTypes.DEFAULT_
     global listings
     indexCamera = listings[int(query.data[3:])]
     seller = indexCamera.seller
-    await query.edit_message_text(text=("Please message the seller: " + seller + " to ask your questions about this camera.\n" +
+    await query.edit_message_text(text=("Please message the seller: @" + seller.username + " to ask your questions about this camera.\n" +
                                         "(We might not be able to message you due to your privacy settings)\n\n" +
                                         "Alternatively, for general concerns, please visit the link below for our FAQ!\n" +
                                         "https://docs.google.com/document/d/1v4ofc_tfiPyNuJWW-iOHLFUolAb5srZfnWqnke90Qlk/edit?tab=t.vhga5eeqazd4"))
@@ -185,7 +186,7 @@ async def handlerListingBuying_Confirmation (update: Update, context: ContextTyp
     #get the userPurchaseInfo
     userIndex = customerPurchaseInfos.findCartIndex(telegramID)
     if userIndex == "NO_ITEM_FOUND":
-        #error occured, need to redo
+        #error occurred, need to redo
         await context.bot.send_message(chat_id=update.effective_chat.id,
                                        text="Unexpected exception occured. Exiting listings. Please try again.")
         return ConversationHandler.END
@@ -224,12 +225,11 @@ async def handlerListingBuying_AddedToCart (update: Update, context: ContextType
     query = update.callback_query
     await query.answer()
 
-    telegramID = update.effective_chat.id
     global customerPurchaseInfos
     telegramID = update.effective_chat.id
     userIndex = customerPurchaseInfos.findCartIndex(telegramID)
     if userIndex == "NO_ITEM_FOUND":
-        #error occured, need to redo
+        #error occurred, need to redo
         await context.bot.send_message(chat_id=update.effective_chat.id,
                                        text="Unexpected exception occured. Exiting listings. Please try again.")
         return ConversationHandler.END

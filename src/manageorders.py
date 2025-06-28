@@ -9,17 +9,24 @@ for the seller to manage orders
 MANAGE_ORDER_START, MANAGE_ORDER_PAYMENT_CONFIRMATION, MANAGE_ORDER_DELIVERY_INFO_ASKED = range(3)
 
 #demo authentication key being used
-authentication_key = ""
-api_key = ""
+authentication_key = "n7PFeTZjRT"
+api_key = "EP-GEsNV2OmJ"
 
 listOfUnpaidOrders = []
 listOfPaidOrders = []
+listOfDeliveryOrders = []
 
 async def manageOrders_Start (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     keyboard = [[InlineKeyboardButton("verify payment", callback_data="verify")],
                 [InlineKeyboardButton("other stuff lol", callback_data="other")]]
     await update.message.reply_text(text="What do you want to do today?", reply_markup=InlineKeyboardMarkup(keyboard))
     return MANAGE_ORDER_START
+
+'''
+=========================================================================
+VERIFY PAYMENT FUNCTIONS
+=========================================================================
+'''
 
 async def manageOrders_verifyPayment_listCustomers (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
@@ -84,12 +91,18 @@ async def manageOrders_askCustomerForDeliveryInfo (update: Update, context: Cont
     listOfPaidOrders.append(indexOrder)
 
     #tell seller
-    await query.edit_message_text(text="Payment verified! Customer" + indexOrder.username + "has been asked for their delivery information.")
+    await query.edit_message_text(text="Payment verified! Customer @" + indexOrder.username + "has been asked for their delivery information.")
 
     #tell buyer
     await context.bot.send_message(chat_id=indexOrder.id, text="Your payment has been verified! Please use /delivery to proceed with filling in your delivery information as soon as possible.")
 
     return ConversationHandler.END
+
+'''
+=========================================================================
+SEND PARCEL FUNCTIONS
+=========================================================================
+'''
 
 async def manageOrders_cancel (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
