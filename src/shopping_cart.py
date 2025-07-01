@@ -265,7 +265,7 @@ async def handlerCartPay_Pickup (update: Update, context: ContextTypes.DEFAULT_T
     listOfCameras, totalPrice = printCart(userCart)
 
     #inform sellers
-    newDeliveryInfo = DeliveryInfo(telegramID, update.effective_chat.username, "", "", "", "", "", 'pickup', listOfCameras, userCamera, totalPrice)
+    newDeliveryInfo = DeliveryInfo(telegramID, update.effective_chat.username, "", "", "", "", "", 'pickup', listOfCameras, userCamera, totalPrice, "", "")
     manageorders.listOfUnpaidOrders.append(newDeliveryInfo)
 
     await context.bot.send_message(chat_id=update.effective_chat.id, #replace with seller's telegram id
@@ -275,7 +275,7 @@ async def handlerCartPay_Pickup (update: Update, context: ContextTypes.DEFAULT_T
     await query.edit_message_text(text="The sellers has been notified. Please contact @" + userCamera.camera.seller.username + "to work out the pick-up details.\n(We might not be able to message you due to your privacy settings)")
 
     await context.bot.send_photo(chat_id=update.effective_chat.id,
-                                 caption="Additionally, send $" + str(totalPrice) + " to the number INSERTNUMBERHERE, or scan the paynow code\nScreenshot and send to " + userCamera.camera.seller.username + " as well.",
+                                 caption="Additionally, send $" + str(totalPrice) + " to the number " + userCamera.camera.seller.contactnumber + ", or scan the paynow code\nScreenshot and send to " + userCamera.camera.seller.username + " as well.",
                                  photo=open('../.idea/testpicture.png', 'rb'))
     return ConversationHandler.END
 
@@ -295,14 +295,14 @@ async def handlerCartPay_Delivery (update: Update, context: ContextTypes.DEFAULT
     listOfCameras, totalPrice = printCart(userCart)
 
     #inform sellers
-    newDeliveryInfo = DeliveryInfo(telegramID, update.effective_chat.username, "", "", "", "", "", 'delivery', listOfCameras, userCamera, totalPrice)
+    newDeliveryInfo = DeliveryInfo(telegramID, update.effective_chat.username, "", "", "", "", "", 'delivery', listOfCameras, userCamera, totalPrice, "", "")
     manageorders.listOfUnpaidOrders.append(newDeliveryInfo)
 
     await context.bot.send_message(chat_id=userCamera.camera.seller.id,
                                    text="Normal delivery for @" + update.effective_chat.username + "\nOrder:\n" + listOfCameras + "\nPlease use /manageorders when payment comes through.")
     #inform buyers
     await context.bot.send_photo(chat_id=update.effective_chat.id,
-                                 caption=("The sellers have been notified, please paynow $" + str(totalPrice) + " to the number INSERTNUMBERHERE, or scan the paynow code.\n" +
+                                 caption=("The sellers have been notified, please paynow $" + str(totalPrice) + " to the number " + userCamera.camera.seller.contactnumber + ", or scan the paynow code.\n" +
                                           "Screenshot proof of payment and send it to @" + userCamera.camera.seller.username + "\n" +
                                           "Delivery information will be processed after payment is verified."),
                                  photo=open('../.idea/testpicture.png', 'rb'))
@@ -326,7 +326,7 @@ async def handlerCartPay_Asap (update: Update, context: ContextTypes.DEFAULT_TYP
     totalPrice += 5
 
     #inform sellers
-    newDeliveryInfo = DeliveryInfo(telegramID, update.effective_chat.username, "", "", "", "", "", 'asap', listOfCameras, userCamera, totalPrice)
+    newDeliveryInfo = DeliveryInfo(telegramID, update.effective_chat.username, "", "", "", "", "", 'asap', listOfCameras, userCamera, totalPrice, "", "")
     manageorders.listOfUnpaidOrders.append(newDeliveryInfo)
 
     await context.bot.send_message(chat_id=userCamera.camera.seller.id,
@@ -334,7 +334,7 @@ async def handlerCartPay_Asap (update: Update, context: ContextTypes.DEFAULT_TYP
 
     #inform buyers
     await context.bot.send_photo(chat_id=update.effective_chat.id,
-                                 caption=("The sellers have been notified, please paynow $" + str(totalPrice) + " to the number INSERTNUMBERHERE, or scan the paynow code.\n" +
+                                 caption=("The sellers have been notified, please paynow $" + str(totalPrice) + " to the number " + userCamera.camera.seller.contactnumber + ", or scan the paynow code.\n" +
                                           "Screenshot proof of payment and send it to @" + userCamera.camera.seller.username + "\n" +
                                           "Delivery information will be processed after payment is verified."),
                                  photo=open('../.idea/testpicture.png', 'rb'))

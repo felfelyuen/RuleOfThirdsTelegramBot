@@ -9,7 +9,7 @@ from cart import Cart
 from seller_info import Seller
 
 def setUpTestListings():
-    seller1 = Seller(796353209, "falafelyuen", "Felix Yuen", "462153", "153B Bedok South Road #11-402", "+6594685756")
+    seller1 = Seller(796353209, "falafelyuen", "Felix Yuen", "462153", "153B Bedok South Road ","#11-402", "+6594685756")
     cam1 = Camera("Sony", "Cybershot DSC-WX1", "yes", "", "16.1", 169, seller1)
     cam2 = Camera("Nikon", "Coolpix L1", "", "AA", "10",189, seller1)
     cam3 = Camera("Canon", "Ixy 120", "", "", "16", 299, seller1)

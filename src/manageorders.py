@@ -3,10 +3,23 @@ import requests
 from pycparser.ply.yacc import resultlimit
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes, ConversationHandler
-from DeliveryInfo import DeliveryInfo
+
 '''
 for the seller to manage orders 
 '''
+
+#following lines for testing only
+from DeliveryInfo import DeliveryInfo
+from camera import Camera
+from seller_info import Seller
+from purchase_info import PurchaseInfo
+
+def setUpTestDeliveryOrders ():
+    seller1 = Seller(796353209, "falafelyuen", "Felix Yuen", "462153", "153B Bedok South Road ","#11-402", "+6594685756")
+    cam1 = Camera("Sony", "Cybershot DSC-WX1", "yes", "", "16.1", 169, seller1)
+    purchase1 = PurchaseInfo(796353209, cam1, "plain", "no", 174)
+    delivery1 = DeliveryInfo(796353209, "falafelyuen", "Felix Yuen Pin Qi", "510709", "Blk 709 Pasir Ris Road", "#08-103", "+6592305493", "asap", "", purchase1, 174, "", "")
+    return delivery1
 
 (MANAGEORDER_START,
  MANAGEORDER_PAYMENT_CONFIRMATION, MANAGEORDER_PAYMENT_DELIVERYINFOASKED,
@@ -24,7 +37,7 @@ listOfUnpaidOrders = []
 listOfPaidOrders = []
 
 #listOfDeliveryOrders is the list of orders that has delivery information received, waiting for the seller to choose the delivery option through EasYParcel API.
-listOfDeliveryOrders = []
+listOfDeliveryOrders = [setUpTestDeliveryOrders()]
 
 #listOfRates is the list of rates obtained from querying EasyParcel
 listOfRates = []
@@ -153,42 +166,49 @@ async def manageOrders_sendParcel_getRate_listCouriers (update: Update, context:
     query = update.callback_query
     await query.answer()
     data = query.data.split()
+    global listOfRates
+
     if data[0] == "back":
         customerIndex = int(data[1])
+        res = listOfRates
     else:
         customerIndex = int(data[0])
+        global api_key
+        global auth_key
+        global listOfDeliveryOrders
 
-    global api_key
-    global auth_key
-    global listOfDeliveryOrders
+        await query.edit_message_text(text="loading... please hold on")
 
-    await query.edit_message_text(text="loading... please hold on")
-    #check rates
-    domain = "http://demo.connect.easyparcel.sg/?ac="
-    action = "MPRateCheckingBulk"
-    url = domain + action
-    postparam = {
-        'authentication': auth_key,
-        'api': api_key,
-        'bulk': [{
-            "pick_code": listOfDeliveryOrders[customerIndex].postalcode,
-            "pick_country": "SG",
-            "send_code": listOfDeliveryOrders[customerIndex].purchaseInfo.camera.seller.postalcode,
-            "send_country": "SG",
-            "weight": 0.2
-        }]
-    }
-    headers = {
-        'Content-Type': 'application/json'
-    }
+        #check rates
+        domain = "http://demo.connect.easyparcel.sg/?ac="
+        action = "MPRateCheckingBulk"
+        url = domain + action
+        postparam = {
+            'authentication': auth_key,
+            'api': api_key,
+            'bulk': [{
+                "pick_code": listOfDeliveryOrders[customerIndex].purchaseInfo.camera.seller.postalcode,
+                "pick_country": "SG",
+                "send_code": listOfDeliveryOrders[customerIndex].postalcode,
+                "send_country": "SG",
+                "weight": 0.2
+            }]
+        }
+        headers = {
+            'Content-Type': 'application/json'
+        }
+        # Send the POST request
+        res = requests.post(url, json=postparam, headers=headers)
+        res = res.json()
+        logging.info("Outcome of get_Rate API call:" + res["api_status"])
 
-    # Send the POST request
-    res = requests.post(url, json=postparam, headers=headers)
-    res = res.json()
-    #set listOfRates to be response
-    logging.info("successfully retrieved rates")
-    global listOfRates
-    listOfRates = res
+        #handle non-success api response
+        if res["error_code"] != "0":
+            await query.edit_message_text(text=res["error_remark"] + "Terminating procedure")
+            return ConversationHandler.END
+
+        #set listOfRates to be response
+        listOfRates = res
 
     #set up keyboard
     keyboard = []
@@ -274,8 +294,78 @@ async def manageOrders_sendParcel_makeOrder (update: Update, context: ContextTyp
     """
     query = update.callback_query
     await query.answer()
-    
-    await query.edit_message_text(text="work in progress")
+
+    await query.edit_message_text(text="loading... please hold on")
+
+    queryData = query.data.split()
+    customerIndex = int(queryData[0])
+    courier_index = int(queryData[1])
+
+    global api_key
+    global auth_key
+    global listOfDeliveryOrders
+    global listOfRates
+
+    indexOrder = listOfDeliveryOrders[customerIndex]
+    #check rates
+    domain = "http://demo.connect.easyparcel.sg/?ac="
+    action = "MPSubmitOrderBulk"
+    url = domain + action
+    postparam = {
+        'authentication': auth_key,
+        'api': api_key,
+        'bulk': [{
+            "weight": 0.2,
+            "content": indexOrder.purchaseInfo.camera.name,
+            'value': 180,
+            "service_id": listOfRates["result"][0]["rates"][courier_index]["service_id"],
+            "pick_name": indexOrder.purchaseInfo.camera.seller.name,
+            "pick_contact": indexOrder.purchaseInfo.camera.seller.contactnumber,
+            "pick_unit": indexOrder.purchaseInfo.camera.seller.unitnumber,
+            "pick_code": indexOrder.purchaseInfo.camera.seller.postalcode,
+            "pick_country": "SG",
+            "send_name": indexOrder.name,
+            "send_contact": indexOrder.contactnumber,
+            "send_unit": indexOrder.unitnumber,
+            "send_addr1": indexOrder.address,
+            #TODO: CLARIFY WHAT THE FUCK SEND_STATE IS
+            "send_state": "png",
+            "send_code": indexOrder.postalcode,
+            "send_country": "SG",
+        }]
+    }
+    headers = {
+        'Content-Type': 'application/json'
+    }
+    # Send the POST request
+    res = requests.post(url, json=postparam, headers=headers)
+    res = res.json()
+    logging.info("Outcome of send_Parcel API call:" + res["api_status"])
+
+    #handle non-success api response
+    if res["error_code"] != "0":
+        await query.edit_message_text(text=res["error_remark"] + "Terminating procedure")
+        return ConversationHandler.END
+
+    await query.edit_message_text(text=res["result"][0]["remarks"])
+    resultt = res["result"][0]
+    logging.info(resultt["status"])
+    logging.info(resultt["remarks"])
+
+    #check success of order
+    if res["result"][0]["status"] == "fail":
+        #failed
+        listOfDeliveryOrders.pop(customerIndex)
+        await query.edit_message_text(text="Placing the order has failed. Please place the order manually. This delivery order will be removed from the database.\n Order information:\n" + indexOrder.printInfo())
+        return ConversationHandler.END
+
+    #success
+    order_number = res["result"][0]["order_number"]
+    order_price = str(res["result"][0]["price"])
+    logging.info("order_number is [" + order_number + "] and order price is [" + order_price + "]")
+    listOfDeliveryOrders[customerIndex].EP_order_no = order_number
+    await context.bot.send_message(chat_id=update.effective_chat.id,
+                                   text="Order has been placed!\nOrder number:" + order_number + "\nOrder price:" + order_price)
     return ConversationHandler.END
 
 async def manageOrders_cancel (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
