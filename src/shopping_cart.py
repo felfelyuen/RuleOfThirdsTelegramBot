@@ -299,7 +299,7 @@ async def handlerCartPay_Delivery (update: Update, context: ContextTypes.DEFAULT
     manageorders.listOfUnpaidOrders.append(newDeliveryInfo)
 
     await context.bot.send_message(chat_id=userCamera.camera.seller.id,
-                                   text="Normal delivery for @" + update.effective_chat.username + "\nOrder:\n" + listOfCameras)
+                                   text="Normal delivery for @" + update.effective_chat.username + "\nOrder:\n" + listOfCameras + "\nPlease use /manageorders when payment comes through.")
     #inform buyers
     await context.bot.send_photo(chat_id=update.effective_chat.id,
                                  caption=("The sellers have been notified, please paynow $" + str(totalPrice) + " to the number INSERTNUMBERHERE, or scan the paynow code.\n" +
@@ -330,7 +330,7 @@ async def handlerCartPay_Asap (update: Update, context: ContextTypes.DEFAULT_TYP
     manageorders.listOfUnpaidOrders.append(newDeliveryInfo)
 
     await context.bot.send_message(chat_id=userCamera.camera.seller.id,
-                                   text="ASAP delivery for @" + update.effective_chat.username + "\nOrder:\n" + listOfCameras)
+                                   text="ASAP delivery for @" + update.effective_chat.username + "\nOrder:\n" + listOfCameras + "\nPlease use /manageorders when payment comes through.")
 
     #inform buyers
     await context.bot.send_photo(chat_id=update.effective_chat.id,

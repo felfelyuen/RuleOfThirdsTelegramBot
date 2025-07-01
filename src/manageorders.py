@@ -1,4 +1,6 @@
 import logging
+import requests
+from pycparser.ply.yacc import resultlimit
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes, ConversationHandler
 from DeliveryInfo import DeliveryInfo
@@ -6,21 +8,34 @@ from DeliveryInfo import DeliveryInfo
 for the seller to manage orders 
 '''
 
-MANAGE_ORDER_START, MANAGE_ORDER_PAYMENT_CONFIRMATION, MANAGE_ORDER_DELIVERY_INFO_ASKED = range(3)
+(MANAGEORDER_START,
+ MANAGEORDER_PAYMENT_CONFIRMATION, MANAGEORDER_PAYMENT_DELIVERYINFOASKED,
+ MANAGE_ORDER_DELIVERY_CHOOSECOURIER, MANAGEORDER_DELIVERY_REQUEST_CONFIRMATION, MANAGEORDER_DELIVERY_MAKEORDER) = range(6)
 
 #demo authentication key being used
-authentication_key = "n7PFeTZjRT"
+auth_key = "n7PFeTZjRT"
 api_key = "EP-GEsNV2OmJ"
 
+#listOfUnpaidOrders is the list of orders that has been pending payment verification.
+#It is dependent on the sellers to confirm if the buyer has paid the payment, on their end through their bank accounts.
 listOfUnpaidOrders = []
+
+#listOfPaidOrders is the list of orders that has payment verified, pending delivery information from the buyer.
 listOfPaidOrders = []
+
+#listOfDeliveryOrders is the list of orders that has delivery information received, waiting for the seller to choose the delivery option through EasYParcel API.
 listOfDeliveryOrders = []
+
+#listOfRates is the list of rates obtained from querying EasyParcel
+listOfRates = []
 
 async def manageOrders_Start (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     keyboard = [[InlineKeyboardButton("verify payment", callback_data="verify")],
-                [InlineKeyboardButton("other stuff lol", callback_data="other")]]
-    await update.message.reply_text(text="What do you want to do today?", reply_markup=InlineKeyboardMarkup(keyboard))
-    return MANAGE_ORDER_START
+                [InlineKeyboardButton("send parcel to customer", callback_data="send")]]
+    await context.bot.send_message(chat_id= update.effective_chat.id,
+                                   text="What do you want to do today?",
+                                   reply_markup=InlineKeyboardMarkup(keyboard))
+    return MANAGEORDER_START
 
 '''
 =========================================================================
@@ -47,9 +62,10 @@ async def manageOrders_verifyPayment_listCustomers (update: Update, context: Con
         i += 1
 
     keyboard.append([InlineKeyboardButton(text="go back", callback_data="back")])
+
     await query.edit_message_text(text="Choose the customer to verify payment for:",
                                   reply_markup=InlineKeyboardMarkup(keyboard))
-    return MANAGE_ORDER_PAYMENT_CONFIRMATION
+    return MANAGEORDER_PAYMENT_CONFIRMATION
 
 async def manageOrders_verifyPayment_Confirmation (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
@@ -73,7 +89,7 @@ async def manageOrders_verifyPayment_Confirmation (update: Update, context: Cont
     keyboard = [[InlineKeyboardButton("confirm", callback_data="yes " + str(index)), InlineKeyboardButton("go back", callback_data= "back")]]
 
     await query.edit_message_text(text=message, reply_markup=InlineKeyboardMarkup(keyboard))
-    return MANAGE_ORDER_DELIVERY_INFO_ASKED
+    return MANAGEORDER_PAYMENT_DELIVERYINFOASKED
 
 async def manageOrders_askCustomerForDeliveryInfo (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
@@ -86,12 +102,13 @@ async def manageOrders_askCustomerForDeliveryInfo (update: Update, context: Cont
     global listOfUnpaidOrders
     indexOrder = listOfUnpaidOrders[index]
 
-    #update list of paid orders
+    #update list of paid orders and unpaid orders
     global listOfPaidOrders
     listOfPaidOrders.append(indexOrder)
+    listOfUnpaidOrders.pop(index)
 
     #tell seller
-    await query.edit_message_text(text="Payment verified! Customer @" + indexOrder.username + "has been asked for their delivery information.")
+    await query.edit_message_text(text="Payment verified! Customer @" + indexOrder.username + " has been asked for their delivery information.")
 
     #tell buyer
     await context.bot.send_message(chat_id=indexOrder.id, text="Your payment has been verified! Please use /delivery to proceed with filling in your delivery information as soon as possible.")
@@ -103,6 +120,163 @@ async def manageOrders_askCustomerForDeliveryInfo (update: Update, context: Cont
 SEND PARCEL FUNCTIONS
 =========================================================================
 '''
+
+async def manageOrders_sendParcel_listCustomers (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    lists all the customers that have submitted their delivery information.
+    """
+    query = update.callback_query
+    await query.answer()
+
+    global listOfDeliveryOrders
+    if len(listOfDeliveryOrders) == 0:
+        await query.edit_message_text(text="There are no pending orders to send the parcel for.")
+        return ConversationHandler.END
+
+    keyboard = []
+    i = 0
+    while i < len(listOfDeliveryOrders):
+        keyboard.append([InlineKeyboardButton(text=listOfDeliveryOrders[i].username, callback_data=str(i))])
+        i += 1
+
+    keyboard.append([InlineKeyboardButton(text="go back", callback_data="back")])
+    await query.edit_message_text(text="Choose the customer to send the parcel for:",
+                                  reply_markup=InlineKeyboardMarkup(keyboard))
+    return MANAGE_ORDER_DELIVERY_CHOOSECOURIER
+
+
+async def manageOrders_sendParcel_getRate_listCouriers (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    lists all the couriers available for that parcel order
+    """
+
+    query = update.callback_query
+    await query.answer()
+    data = query.data.split()
+    if data[0] == "back":
+        customerIndex = int(data[1])
+    else:
+        customerIndex = int(data[0])
+
+    global api_key
+    global auth_key
+    global listOfDeliveryOrders
+
+    await query.edit_message_text(text="loading... please hold on")
+    #check rates
+    domain = "http://demo.connect.easyparcel.sg/?ac="
+    action = "MPRateCheckingBulk"
+    url = domain + action
+    postparam = {
+        'authentication': auth_key,
+        'api': api_key,
+        'bulk': [{
+            "pick_code": listOfDeliveryOrders[customerIndex].postalcode,
+            "pick_country": "SG",
+            "send_code": listOfDeliveryOrders[customerIndex].purchaseInfo.camera.seller.postalcode,
+            "send_country": "SG",
+            "weight": 0.2
+        }]
+    }
+    headers = {
+        'Content-Type': 'application/json'
+    }
+
+    # Send the POST request
+    res = requests.post(url, json=postparam, headers=headers)
+    res = res.json()
+    #set listOfRates to be response
+    logging.info("successfully retrieved rates")
+    global listOfRates
+    listOfRates = res
+
+    #set up keyboard
+    keyboard = []
+    i = 0
+    while i < len(res["result"][0]["rates"]):
+        keyboard.append([InlineKeyboardButton(text=res["result"][0]["rates"][i]["courier_name"], callback_data=str(customerIndex) + " " + str(i))])
+        i += 1
+
+    keyboard.append([InlineKeyboardButton(text="go back", callback_data="back")])
+    await query.edit_message_text(text="Choose the delivery option to send the parcel for:", reply_markup=InlineKeyboardMarkup(keyboard))
+    return MANAGEORDER_DELIVERY_REQUEST_CONFIRMATION
+
+def filterByPostalCode (rate, seller_poscode):
+    """
+    filters out the dropoff points by postal code.
+    :param rate: the rate, a single item found in the array of "rates"
+    :param seller_poscode: the seller's postal code
+    :return: result, the array of dropoff points as dictionaries (array of dictionaries)
+             message, the full message containing all the dropoff points but as a message (a string)
+             message_array, an array of the full message, split by each dropoff point (array of strings)
+    """
+
+    result = []
+    message = ""
+    message_array = []
+    dropoffs = rate["dropoff_point"]
+    for x in dropoffs:
+        if (x["point_postcode"])[0:2] == seller_poscode[0:2] :
+            #near enough to the seller
+            result.append(x)
+            new_message = x["point_addr1"] + " " + x["point_addr2"] + " " + x["point_addr3"] + " " + x["point_addr4"] + " " + x["point_postcode"] + " \n"
+            message += new_message
+            message_array.append(new_message)
+    return result, message, message_array
+
+
+async def manageOrders_sendParcel_getRate_confirmation (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    asks seller to confirm the courier, with a list of some possible drop-off points
+    """
+    query = update.callback_query
+    await query.answer()
+
+    queryData = query.data.split()
+    customerIndex = int(queryData[0])
+    courier_index = int(queryData[1])
+
+    global listOfRates
+    courier_info = listOfRates["result"][0]["rates"][courier_index]
+
+    #form message
+    message = "Are you sure you want to use this courier?\n\n" + "Courier information:\n"
+    message += "Name: " + courier_info["courier_name"] + "\n"
+    message += "Pick-up date: " + courier_info["pickup_date"] + "\n"
+    message += "Delivery: " + courier_info["delivery"] + "\n"
+    message += "Price of delivery: " + courier_info["price"] + "\n"
+    message += "Add-on price: " + courier_info["addon_price"] + "\n"
+    message += "Shipment price: " + courier_info["shipment_price"] + "\n"
+    message += "Shipment tax: " + courier_info["shipment_tax"] + "\n"
+    message += "Service name: " + courier_info["service_name"] + "\n\n"
+    message += "Possible drop-off points near you (@" + update.effective_chat.username + " ):\n"
+
+    #get seller postal code
+    global listOfDeliveryOrders
+    seller_poscode =  listOfDeliveryOrders[customerIndex].purchaseInfo.camera.seller.postalcode
+
+    #get possible postal codes:
+    result, message_new, message_array = filterByPostalCode(courier_info, seller_poscode)
+    logging.info(message_new)
+    i = 0
+    while (i < 7) & (i < len(message_array)):
+        message += message_array[i]
+        i += 1
+
+    keyboard = [[InlineKeyboardButton("confirm (make order)", callback_data= query.data)],
+                [InlineKeyboardButton("back", callback_data="back " + str(customerIndex))]]
+    await query.edit_message_text(text=message, reply_markup=InlineKeyboardMarkup(keyboard))
+    return MANAGEORDER_DELIVERY_MAKEORDER
+
+async def manageOrders_sendParcel_makeOrder (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    makes order after confirmation
+    """
+    query = update.callback_query
+    await query.answer()
+    
+    await query.edit_message_text(text="work in progress")
+    return ConversationHandler.END
 
 async def manageOrders_cancel (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """

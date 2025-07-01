@@ -135,12 +135,19 @@ if __name__ == '__main__':
     manageorders_handler = ConversationHandler(
         entry_points=[CommandHandler('manageorders', manageOrders_Start)],
         states={
-            MANAGE_ORDER_START: [CallbackQueryHandler(manageOrders_verifyPayment_listCustomers, pattern="^verify$"),
-                                 CallbackQueryHandler(manageOrders_cancel)],
-            MANAGE_ORDER_PAYMENT_CONFIRMATION: [CallbackQueryHandler(manageOrders_Start, pattern="^back$"),
+            MANAGEORDER_START: [CallbackQueryHandler(manageOrders_verifyPayment_listCustomers, pattern="^verify$"),
+                                 CallbackQueryHandler(manageOrders_sendParcel_listCustomers, pattern="^send$")],
+            MANAGEORDER_PAYMENT_CONFIRMATION: [CallbackQueryHandler(manageOrders_Start, pattern="^back$"),
                                                 CallbackQueryHandler(manageOrders_verifyPayment_Confirmation)],
-            MANAGE_ORDER_DELIVERY_INFO_ASKED: [CallbackQueryHandler(manageOrders_verifyPayment_listCustomers, pattern="^back$"),
-                                               CallbackQueryHandler(manageOrders_askCustomerForDeliveryInfo)]
+            MANAGEORDER_PAYMENT_DELIVERYINFOASKED: [CallbackQueryHandler(manageOrders_verifyPayment_listCustomers, pattern="^back$"),
+                                               CallbackQueryHandler(manageOrders_askCustomerForDeliveryInfo)],
+            MANAGE_ORDER_DELIVERY_CHOOSECOURIER:[CallbackQueryHandler(manageOrders_Start, pattern="^back$"),
+                                                 CallbackQueryHandler(manageOrders_sendParcel_getRate_listCouriers)],
+            MANAGEORDER_DELIVERY_REQUEST_CONFIRMATION: [CallbackQueryHandler(manageOrders_sendParcel_listCustomers, pattern="^back$"),
+                                                        CallbackQueryHandler(manageOrders_sendParcel_getRate_confirmation)],
+            MANAGEORDER_DELIVERY_MAKEORDER:[CallbackQueryHandler(manageOrders_sendParcel_getRate_listCouriers, pattern="back"),
+                                            CallbackQueryHandler(manageOrders_sendParcel_makeOrder)]
+
         },
         fallbacks=[CommandHandler('cancel',manageOrders_cancel)]
     )

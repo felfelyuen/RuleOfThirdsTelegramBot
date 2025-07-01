@@ -69,43 +69,18 @@ async def delivery_confirmDeliveryInfo (update: Update, context: ContextTypes.DE
     paidOrders[i].contactnumber = (infoReceived[5].split(":"))[1].strip()
     logging.info(paidOrders[i].contactnumber)
 
-    #add into deliveryOrders
-    manageorders.listOfDeliveryOrders.append(paidOrders[i])
-    #remove from paidOrders
-    manageorders.listOfPaidOrders.pop(i)
-    '''
-    api_key = manageorders.api_key
-    auth_key = manageorders.authentication_key
-
-    #check rates
-    domain = "http://demo.connect.easyparcel.sg/?ac="
-    action = "MPRateCheckingBulk"
-    url = domain + action
-    postparam = {
-        'authentication': auth_key,
-        'api': api_key,
-        'bulk': [{
-            "pick_code": paidOrders[i].postalcode,
-            "pick_country": "SG",
-            "send_code": "510709",
-            "send_country": "SG",
-            "weight": 0.2
-        }]
-    }
-    headers = {
-        'Content-Type': 'application/json'
-    }
 
 
-    # Send the POST request
-    response = requests.post(url, json=postparam, headers=headers)
-
-    logging.info(response.json())
-    '''
     await update.message.reply_text(text=("You have inputted the following:\n\n"
                                           + update.message.text +
                                           "\n\nIf this is incorrect, please message our seller @" + paidOrders[i].purchaseInfo.camera.seller.username + " as soon as possible. "))
     await context.bot.send_message(chat_id=paidOrders[i].purchaseInfo.camera.seller.id,
-                                   text=("@" + paidOrders[i].username + "has submitted their delivery information. Please choose the delivery option.\n" +
-                                         paidOrders[i].type + " of delivery required."))
+                                   text=("@" + paidOrders[i].username + " has submitted their delivery information. Please use /manageorders and choose the delivery option.\n" +
+                                         paidOrders[i].type + " delivery required."))
+
+    #add into deliveryOrders
+    manageorders.listOfDeliveryOrders.append(paidOrders[i])
+    #remove from paidOrders
+    manageorders.listOfPaidOrders.pop(i)
+
     return ConversationHandler.END
