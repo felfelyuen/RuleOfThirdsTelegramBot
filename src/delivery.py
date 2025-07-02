@@ -66,7 +66,11 @@ async def delivery_confirmDeliveryInfo (update: Update, context: ContextTypes.DE
     logging.info(paidOrders[i].address)
     paidOrders[i].unitnumber = (infoReceived[4].split(":"))[1].strip()
     logging.info(paidOrders[i].unitnumber)
-    paidOrders[i].contactnumber = (infoReceived[5].split(":"))[1].strip()
+    buyer_contact = (infoReceived[5].split(":"))[1].strip()
+    if buyer_contact[0:1] != "+":
+        #will assume the buyer is using singaporean contact "+65", unless explicitly stated by buyer with "+"
+        buyer_contact = "+65" + buyer_contact
+    paidOrders[i].contactnumber = buyer_contact
     logging.info(paidOrders[i].contactnumber)
 
 

@@ -28,6 +28,8 @@ def setUpTestDeliveryOrders ():
 #demo authentication key being used
 auth_key = "n7PFeTZjRT"
 api_key = "EP-GEsNV2OmJ"
+#demo website being used
+domain = "http://demo.connect.easyparcel.sg/?ac="
 
 #listOfUnpaidOrders is the list of orders that has been pending payment verification.
 #It is dependent on the sellers to confirm if the buyer has paid the payment, on their end through their bank accounts.
@@ -36,9 +38,11 @@ listOfUnpaidOrders = []
 #listOfPaidOrders is the list of orders that has payment verified, pending delivery information from the buyer.
 listOfPaidOrders = []
 
-#listOfDeliveryOrders is the list of orders that has delivery information received, waiting for the seller to choose the delivery option through EasYParcel API.
+#listOfDeliveryOrders is the list of orders that has delivery information received, waiting for the seller to choose the delivery option through EasyParcel API.
 listOfDeliveryOrders = [setUpTestDeliveryOrders()]
 
+#listOfShippedOrders is the list of orders that has had the EasyParcel order made, and is currently being sent to the customer.
+listOfShippedOrders = []
 #listOfRates is the list of rates obtained from querying EasyParcel
 listOfRates = []
 
@@ -153,7 +157,7 @@ async def manageOrders_sendParcel_listCustomers (update: Update, context: Contex
         i += 1
 
     keyboard.append([InlineKeyboardButton(text="go back", callback_data="back")])
-    await query.edit_message_text(text="Choose the customer to send the parcel for:",
+    await query.edit_message_text(text="NOTE: Dropoff orders cannot be placed through the bot.\nChoose the customer to send the parcel for:",
                                   reply_markup=InlineKeyboardMarkup(keyboard))
     return MANAGE_ORDER_DELIVERY_CHOOSECOURIER
 
@@ -177,10 +181,10 @@ async def manageOrders_sendParcel_getRate_listCouriers (update: Update, context:
         global auth_key
         global listOfDeliveryOrders
 
-        await query.edit_message_text(text="loading... please hold on")
+        await query.edit_message_text(text="Loading... please hold on")
 
         #check rates
-        domain = "http://demo.connect.easyparcel.sg/?ac="
+        global domain
         action = "MPRateCheckingBulk"
         url = domain + action
         postparam = {
@@ -295,7 +299,7 @@ async def manageOrders_sendParcel_makeOrder (update: Update, context: ContextTyp
     query = update.callback_query
     await query.answer()
 
-    await query.edit_message_text(text="loading... please hold on")
+    await query.edit_message_text(text="Loading... please hold on")
 
     queryData = query.data.split()
     customerIndex = int(queryData[0])
@@ -308,7 +312,7 @@ async def manageOrders_sendParcel_makeOrder (update: Update, context: ContextTyp
 
     indexOrder = listOfDeliveryOrders[customerIndex]
     #check rates
-    domain = "http://demo.connect.easyparcel.sg/?ac="
+    global domain
     action = "MPSubmitOrderBulk"
     url = domain + action
     postparam = {
@@ -348,24 +352,72 @@ async def manageOrders_sendParcel_makeOrder (update: Update, context: ContextTyp
         return ConversationHandler.END
 
     await query.edit_message_text(text=res["result"][0]["remarks"])
-    resultt = res["result"][0]
-    logging.info(resultt["status"])
-    logging.info(resultt["remarks"])
+    rates_result = res["result"][0]
+    logging.info(rates_result["status"])
+    logging.info(rates_result["remarks"])
 
     #check success of order
-    if res["result"][0]["status"] == "fail":
+    if rates_result["status"] == "fail":
         #failed
-        listOfDeliveryOrders.pop(customerIndex)
-        await query.edit_message_text(text="Placing the order has failed. Please place the order manually. This delivery order will be removed from the database.\n Order information:\n" + indexOrder.printInfo())
+        await query.edit_message_text(text="Placing the order has failed because of the following reason.\n\n" +
+                                           rates_result["remarks"] +
+                                           "\n\nPlease place the order manually, or select another delivery service. This delivery order will be removed from the database.\n Order information:\n"
+                                           + indexOrder.printInfo())
         return ConversationHandler.END
 
     #success
-    order_number = res["result"][0]["order_number"]
-    order_price = str(res["result"][0]["price"])
+    order_number = rates_result["order_number"]
+    order_price = str(rates_result["price"])
     logging.info("order_number is [" + order_number + "] and order price is [" + order_price + "]")
     listOfDeliveryOrders[customerIndex].EP_order_no = order_number
     await context.bot.send_message(chat_id=update.effective_chat.id,
-                                   text="Order has been placed!\nOrder number:" + order_number + "\nOrder price:" + order_price)
+                                   text="Order has been placed!\n" +
+                                        rates_result["remarks"] +
+                                        "\nOrder number: " + order_number + "\nOrder price: " + order_price)
+
+    #make payment
+    payment_message = await context.bot.send_message(chat_id=update.effective_chat.id,
+                                                     text="Now making payment. Please wait...")
+    action_2 = "MPPayOrderBulk"
+    url_2 = domain + action_2
+    postparam_2 = {
+        'authentication': auth_key,
+        'api': api_key,
+        'bulk': [{
+            "order_no": order_number
+        }]
+    }
+    res_2 = requests.post(url_2, json=postparam_2, headers=headers)
+    res_2 = res_2.json()
+    logging.info(res_2)
+
+    #handle non-success api response
+    if res["error_code"] != "0":
+        await context.bot.edit_message_text(chat_id=update.effective_chat.id,
+                                            message_id=payment_message.message_id,
+                                            text=res["error_remark"] + "Terminating procedure")
+        return ConversationHandler.END
+
+    payment_result = res_2["result"][0]
+    #handle insufficient credit
+    if payment_result["messagenow"] != "Sufficient credit":
+        await context.bot.edit_message_text(chat_id=update.effective_chat.id,
+                                            message_id=payment_message.message_id,
+                                            text="Payment did not go through due to the following error:\n" + payment_result["messagenow"])
+        return ConversationHandler.END
+
+    #successful payment
+    listOfDeliveryOrders[customerIndex].EP_awb_no = payment_result["parcel"][0]["awb"]
+    messageToSeller = ("Payment has been made!\n" +
+                       "Order Information:\n" +
+                       "Order number: " + payment_result["orderno"] +
+                       "\nStatus: " + payment_result["messagenow"] +
+                       "\nParcel number: " + payment_result["parcel"][0]["parcelno"] +
+                       "\nAirway bill number: " + payment_result["parcel"][0]["awb"] +
+                       "\nAirway bill ID link: " + payment_result["parcel"][0]["awb_id_link"])
+    await context.bot.edit_message_text(chat_id=update.effective_chat.id,
+                                        message_id=payment_message.message_id,
+                                        text=messageToSeller)
     return ConversationHandler.END
 
 async def manageOrders_cancel (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
