@@ -10,9 +10,9 @@ for the seller to manage orders
 
 #following lines for testing only
 from DeliveryInfo import DeliveryInfo
-from camera import Camera
-from seller_info import Seller
-from purchase_info import PurchaseInfo
+from Camera import Camera
+from Seller_info import Seller
+from Purchase_info import PurchaseInfo
 
 def setUpTestDeliveryOrders ():
     seller1 = Seller(796353209, "falafelyuen", "Felix Yuen", "462153", "153B Bedok South Road ","#11-402", "+6594685756")
@@ -20,6 +20,8 @@ def setUpTestDeliveryOrders ():
     purchase1 = PurchaseInfo(796353209, cam1, "plain", "no", 174)
     delivery1 = DeliveryInfo(796353209, "falafelyuen", "Felix Yuen Pin Qi", "510709", "Blk 709 Pasir Ris Road", "#08-103", "+6592305493", "asap", "", purchase1, 174, "", "")
     return delivery1
+#end of test code
+
 
 (MANAGEORDER_START,
  MANAGEORDER_PAYMENT_CONFIRMATION, MANAGEORDER_PAYMENT_DELIVERYINFOASKED,
@@ -29,7 +31,7 @@ def setUpTestDeliveryOrders ():
 auth_key = "n7PFeTZjRT"
 api_key = "EP-GEsNV2OmJ"
 #demo website being used
-domain = "http://demo.connect.easyparcel.sg/?ac="
+domain = 'http://demo.connect.easyparcel.sg/?ac='
 
 #listOfUnpaidOrders is the list of orders that has been pending payment verification.
 #It is dependent on the sellers to confirm if the buyer has paid the payment, on their end through their bank accounts.
@@ -43,6 +45,7 @@ listOfDeliveryOrders = [setUpTestDeliveryOrders()]
 
 #listOfShippedOrders is the list of orders that has had the EasyParcel order made, and is currently being sent to the customer.
 listOfShippedOrders = []
+
 #listOfRates is the list of rates obtained from querying EasyParcel
 listOfRates = []
 
@@ -67,6 +70,7 @@ async def manageOrders_verifyPayment_listCustomers (update: Update, context: Con
     query = update.callback_query
     await query.answer()
 
+    #no unpaid orders
     global listOfUnpaidOrders
     if len(listOfUnpaidOrders) == 0:
         await query.edit_message_text(text="There are no pending orders to verify payment or to wait payment for.")
@@ -91,8 +95,8 @@ async def manageOrders_verifyPayment_Confirmation (update: Update, context: Cont
     query = update.callback_query
     await query.answer()
 
-    logging.info(query.data)
     index = int(query.data)
+
     #fetch order information
     global listOfUnpaidOrders
     indexOrder = listOfUnpaidOrders[index]
@@ -146,6 +150,8 @@ async def manageOrders_sendParcel_listCustomers (update: Update, context: Contex
     await query.answer()
 
     global listOfDeliveryOrders
+
+    #check if there are orders to send for
     if len(listOfDeliveryOrders) == 0:
         await query.edit_message_text(text="There are no pending orders to send the parcel for.")
         return ConversationHandler.END
@@ -155,18 +161,16 @@ async def manageOrders_sendParcel_listCustomers (update: Update, context: Contex
     while i < len(listOfDeliveryOrders):
         keyboard.append([InlineKeyboardButton(text=listOfDeliveryOrders[i].username, callback_data=str(i))])
         i += 1
-
     keyboard.append([InlineKeyboardButton(text="go back", callback_data="back")])
+
     await query.edit_message_text(text="NOTE: Dropoff orders cannot be placed through the bot.\nChoose the customer to send the parcel for:",
                                   reply_markup=InlineKeyboardMarkup(keyboard))
     return MANAGE_ORDER_DELIVERY_CHOOSECOURIER
-
 
 async def manageOrders_sendParcel_getRate_listCouriers (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
     lists all the couriers available for that parcel order
     """
-
     query = update.callback_query
     await query.answer()
     data = query.data.split()
@@ -203,6 +207,7 @@ async def manageOrders_sendParcel_getRate_listCouriers (update: Update, context:
         }
         # Send the POST request
         res = requests.post(url, json=postparam, headers=headers)
+        logging.info(res)
         res = res.json()
         logging.info("Outcome of get_Rate API call:" + res["api_status"])
 
@@ -272,8 +277,7 @@ async def manageOrders_sendParcel_getRate_confirmation (update: Update, context:
     message += "Add-on price: " + courier_info["addon_price"] + "\n"
     message += "Shipment price: " + courier_info["shipment_price"] + "\n"
     message += "Shipment tax: " + courier_info["shipment_tax"] + "\n"
-    message += "Service name: " + courier_info["service_name"] + "\n\n"
-    message += "Possible drop-off points near you (@" + update.effective_chat.username + " ):\n"
+    message += "Service name: " + courier_info["service_name"]
 
     #get seller postal code
     global listOfDeliveryOrders
@@ -281,11 +285,12 @@ async def manageOrders_sendParcel_getRate_confirmation (update: Update, context:
 
     #get possible postal codes:
     result, message_new, message_array = filterByPostalCode(courier_info, seller_poscode)
-    logging.info(message_new)
-    i = 0
-    while (i < 7) & (i < len(message_array)):
-        message += message_array[i]
-        i += 1
+    if len(message_array) != 0:
+        message += "\n\nPossible drop-off points near you (@" + update.effective_chat.username + " ):\n"
+        i = 0
+        while (i < 7) & (i < len(message_array)):
+            message += message_array[i]
+            i += 1
 
     keyboard = [[InlineKeyboardButton("confirm (make order)", callback_data= query.data)],
                 [InlineKeyboardButton("back", callback_data="back " + str(customerIndex))]]
@@ -311,7 +316,7 @@ async def manageOrders_sendParcel_makeOrder (update: Update, context: ContextTyp
     global listOfRates
 
     indexOrder = listOfDeliveryOrders[customerIndex]
-    #check rates
+    #call makeOrder API
     global domain
     action = "MPSubmitOrderBulk"
     url = domain + action
@@ -332,7 +337,6 @@ async def manageOrders_sendParcel_makeOrder (update: Update, context: ContextTyp
             "send_contact": indexOrder.contactnumber,
             "send_unit": indexOrder.unitnumber,
             "send_addr1": indexOrder.address,
-            #TODO: CLARIFY WHAT THE FUCK SEND_STATE IS
             "send_state": "png",
             "send_code": indexOrder.postalcode,
             "send_country": "SG",
@@ -348,13 +352,12 @@ async def manageOrders_sendParcel_makeOrder (update: Update, context: ContextTyp
 
     #handle non-success api response
     if res["error_code"] != "0":
-        await query.edit_message_text(text=res["error_remark"] + "Terminating procedure")
+        await query.edit_message_text(text="Error found:\n" + res["error_remark"] + "\nTerminating procedure")
         return ConversationHandler.END
 
     await query.edit_message_text(text=res["result"][0]["remarks"])
     rates_result = res["result"][0]
-    logging.info(rates_result["status"])
-    logging.info(rates_result["remarks"])
+    logging.info(rates_result["status"] + rates_result["remarks"])
 
     #check success of order
     if rates_result["status"] == "fail":
@@ -375,7 +378,7 @@ async def manageOrders_sendParcel_makeOrder (update: Update, context: ContextTyp
                                         rates_result["remarks"] +
                                         "\nOrder number: " + order_number + "\nOrder price: " + order_price)
 
-    #make payment
+    #call MakePayment API
     payment_message = await context.bot.send_message(chat_id=update.effective_chat.id,
                                                      text="Now making payment. Please wait...")
     action_2 = "MPPayOrderBulk"

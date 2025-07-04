@@ -1,5 +1,4 @@
 import logging
-import requests
 from firebase_admin.auth import InvalidDynamicLinkDomainError
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes, ConversationHandler
@@ -22,10 +21,10 @@ async def delivery_start (update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                               reply_markup=InlineKeyboardMarkup(keyboard))
     return DELIVERY_START
 
-def findOrder (paidOrders, id):
+def findOrder (paid_orders, iden):
     i = 0
-    while i < len(paidOrders):
-        if paidOrders[i].id == id:
+    while i < len(paid_orders):
+        if paid_orders[i].id == iden:
             break
         i+=1
     return i
@@ -59,22 +58,15 @@ async def delivery_confirmDeliveryInfo (update: Update, context: ContextTypes.DE
 
     #fill in information
     paidOrders[i].name = (infoReceived[1].split(":"))[1].strip()
-    logging.info(paidOrders[i].name)
     paidOrders[i].postalcode = (infoReceived[2].split(":"))[1].strip()
-    logging.info(paidOrders[i].postalcode)
     paidOrders[i].address = (infoReceived[3].split(":"))[1].strip()
-    logging.info(paidOrders[i].address)
     paidOrders[i].unitnumber = (infoReceived[4].split(":"))[1].strip()
-    logging.info(paidOrders[i].unitnumber)
     buyer_contact = (infoReceived[5].split(":"))[1].strip()
-    if buyer_contact[0:1] != "+":
+    if buyer_contact[0] != "+":
         #will assume the buyer is using singaporean contact "+65", unless explicitly stated by buyer with "+"
         buyer_contact = "+65" + buyer_contact
     paidOrders[i].contactnumber = buyer_contact
-    logging.info(paidOrders[i].contactnumber)
-
-
-
+#TODO: ADD CONFIRMATION PAGE
     await update.message.reply_text(text=("You have inputted the following:\n\n"
                                           + update.message.text +
                                           "\n\nIf this is incorrect, please message our seller @" + paidOrders[i].purchaseInfo.camera.seller.username + " as soon as possible. "))

@@ -1,11 +1,9 @@
 import logging
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes, ConversationHandler
-from camera import Camera
-from purchase_info import PurchaseInfo
 import listings
 from HashMap import HashMap
-from cart import Cart
+from Cart import Cart
 import manageorders
 from DeliveryInfo import DeliveryInfo
 
@@ -37,7 +35,7 @@ def printCart (cart):
         i += 1
     return listOfCameras, totalPrice
 
-async def handlerCartStart (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def cart_Start (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
     Displays the shopping cart to the user.
     """
@@ -60,11 +58,11 @@ async def handlerCartStart (update: Update, context: ContextTypes.DEFAULT_TYPE) 
     message = ("Here is your shopping cart!\n\n" +
                listOfCameras +
                "Total Price: " +str(totalPrice) + "\n" +
-               "==================================\n" +
-               "use /checkout to pay")
-    keyboard = [#[InlineKeyboardButton("Remove item from cart", callback_data='remove')], #cart is only one item per time hence
-                [InlineKeyboardButton("Clear cart", callback_data="clear")],
-                [InlineKeyboardButton("Pay and checkout", callback_data="checkout")]]
+               "==================================\n")
+    keyboard = [[InlineKeyboardButton("Pay and checkout", callback_data="checkout")],
+                [InlineKeyboardButton("Clear cart", callback_data="clear")]
+                #,[InlineKeyboardButton("Remove item from cart", callback_data='remove')] #cart is only one item per time hence this line is commented out
+                ]
     await context.bot.send_message(chat_id=update.effective_chat.id,
                                    text=message,
                                    reply_markup=InlineKeyboardMarkup(keyboard))
@@ -75,7 +73,7 @@ async def handlerCartStart (update: Update, context: ContextTypes.DEFAULT_TYPE) 
 REMOVE CART ITEM FUNCTIONS
 =========================================================================
 '''
-async def handlerCartRemoveItem (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def cart_RemoveItem (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
     Asks the user which item to remove (item must be removed one at a time)
     """
@@ -100,7 +98,7 @@ async def handlerCartRemoveItem (update: Update, context: ContextTypes.DEFAULT_T
                                   reply_markup=InlineKeyboardMarkup(keyboard))
     return CART_REMOVE_CONFIRM
 
-async def handlerCartRemoveConfirm (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def cart_Remove_Confirm (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
     Asks the user to confirm removal of that camera
     """
@@ -123,7 +121,7 @@ async def handlerCartRemoveConfirm (update: Update, context: ContextTypes.DEFAUL
                                   reply_markup=InlineKeyboardMarkup(keyboard))
     return CART_REMOVE_COMPLETE
 
-async def handlerCartRemoveComplete (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def cart_Remove_Complete (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
     await query.answer()
 
@@ -150,7 +148,10 @@ CLEAR CART FUNCTIONS
 =========================================================================
 '''
 
-async def handlerCartClearConfirm (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def cart_Clear_Confirm (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Asks user to confirm clearing their cart
+    """
     query = update.callback_query
     await query.answer()
 
@@ -168,7 +169,10 @@ async def handlerCartClearConfirm (update: Update, context: ContextTypes.DEFAULT
                                   reply_markup=InlineKeyboardMarkup(keyboard))
     return CART_CLEAR_COMPLETE
 
-async def handlerCartClearComplete (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def cart_Clear_Complete (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Clears the cart for the buyer.
+    """
     query = update.callback_query
     await query.answer()
 
@@ -187,7 +191,7 @@ async def handlerCartClearComplete (update: Update, context: ContextTypes.DEFAUL
 PAY AND DELIVERY FUNCTIONS
 =========================================================================
 '''
-async def handlerCartPayConfirmationPage (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def cart_Pay_Confirm (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
     Asks user to confirm payment
     """
@@ -210,7 +214,7 @@ async def handlerCartPayConfirmationPage (update: Update, context: ContextTypes.
                                   reply_markup=InlineKeyboardMarkup(keyboard))
     return CART_PAY_CONFIRM
 
-async def handlerCartPay_ChooseDelivery (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def cart_Pay_ChooseDelivery (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
     sends message asking to paynow to this phone number
     and then asks them if they want delivery
@@ -249,7 +253,7 @@ async def handlerCartPay_ChooseDelivery (update: Update, context: ContextTypes.D
                                    reply_markup=InlineKeyboardMarkup(keyboard))
     return CART_PAY_WAITING_PAYMENT
 
-async def handlerCartPay_Pickup (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def cart_Pay_Pickup (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
     the user wants pick-up
     """
@@ -279,7 +283,7 @@ async def handlerCartPay_Pickup (update: Update, context: ContextTypes.DEFAULT_T
                                  photo=open('../.idea/testpicture.png', 'rb'))
     return ConversationHandler.END
 
-async def handlerCartPay_Delivery (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def cart_Pay_Delivery (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
     the user wants delivery (normal)
     """
@@ -308,7 +312,7 @@ async def handlerCartPay_Delivery (update: Update, context: ContextTypes.DEFAULT
                                  photo=open('../.idea/testpicture.png', 'rb'))
     return ConversationHandler.END
 
-async def handlerCartPay_Asap (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def cart_Pay_Asap (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
     the user wants delivery (normal)
     """
@@ -343,7 +347,7 @@ async def handlerCartPay_Asap (update: Update, context: ContextTypes.DEFAULT_TYP
 
 async def handlerCartCancel (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
-    Handles the conversation if the user cancels and it will exit the conversation and the listings mode
+    Handles the conversation if the user cancels, and it will exit the conversation and the listings mode
     """
     await context.bot.send_message(
         chat_id=update.effective_chat.id,

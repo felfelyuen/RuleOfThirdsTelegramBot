@@ -1,13 +1,16 @@
 class DeliveryInfo:
-    def __init__(self, id, username, name, postalcode, address, unitnumber, contactnumber, type, order, purchaseInfo, total, EP_order_no, EP_awb_no):
-        self.id = id
+    """
+    Class for the user's Delivery Info
+    """
+    def __init__(self, iden, username, name, postalcode, address, unitnumber, contactnumber, delivery_type, order, purchaseInfo, total, EP_order_no, EP_awb_no):
+        self.id = iden
         self.username = username
         self.name = name
         self.postalcode = postalcode
         self.address = address
         self.unitnumber = unitnumber
         self.contactnumber = contactnumber
-        self.type = type
+        self.delivery_type = delivery_type
         self.order = order
         #purchaseInfo attribute should be of the purchaseInfo class
         self.purchaseInfo = purchaseInfo
@@ -24,6 +27,6 @@ class DeliveryInfo:
         message += "address: " + self.address + "\n"
         message += "unitnumber: " + self.unitnumber + "\n"
         message += "contactnumber: " + self.contactnumber + "\n"
-        message += "type: " + self.type + "\n"
+        message += "type: " + self.delivery_type + "\n"
         message += "order: " + self.order + "\n"
         return message
