@@ -2,20 +2,21 @@ import logging
 from firebase_admin.auth import InvalidDynamicLinkDomainError
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes, ConversationHandler
-
+from HashMap import HashMap
 import manageorders
 '''
 for the buyer to fill in delivery information to proceed with the delivery
 '''
 
-DELIVERY_START, DELIVERY_ASKING_INFO = range(2)
+DELIVERY_START, DELIVERY_ASKING_INFO, DELIVERY_CONFIRMATION = range(3)
 
 async def delivery_start (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
     shows starting page for the buyer to choose
     """
-    keyboard = [[InlineKeyboardButton("fill in delivery information", callback_data="info")],
-                [InlineKeyboardButton("check delivery status", callback_data="status")]]
+    keyboard = [[InlineKeyboardButton("fill in delivery information", callback_data="info")]
+                #,[InlineKeyboardButton("check delivery status", callback_data="status")]
+                ]
 
     await update.message.reply_text(text="What would you like to do today?",
                               reply_markup=InlineKeyboardMarkup(keyboard))
@@ -50,9 +51,10 @@ async def delivery_fillInInfo (update: Update, context: ContextTypes.DEFAULT_TYP
 
 async def delivery_confirmDeliveryInfo (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
-    confirms the delivery information, and updates the user's DeliveryInfo class
+    asks user to confirm the delivery information
     """
     infoReceived = update.message.text.split("\n")
+    telegramID = update.effective_chat.id
     paidOrders = manageorders.listOfPaidOrders
     i = findOrder(paidOrders, update.effective_chat.id)
 
@@ -66,17 +68,37 @@ async def delivery_confirmDeliveryInfo (update: Update, context: ContextTypes.DE
         #will assume the buyer is using singaporean contact "+65", unless explicitly stated by buyer with "+"
         buyer_contact = "+65" + buyer_contact
     paidOrders[i].contactnumber = buyer_contact
-#TODO: ADD CONFIRMATION PAGE
+
+    #set paidOrders as it
+    manageorders.listOfPaidOrders = paidOrders
+
+    #set up keyboard
+    keyboard = [[InlineKeyboardButton("confirm", callback_data="yes " + str(i)), InlineKeyboardButton("no (go back)", callback_data="no")]]
     await update.message.reply_text(text=("You have inputted the following:\n\n"
-                                          + update.message.text +
-                                          "\n\nIf this is incorrect, please message our seller @" + paidOrders[i].purchaseInfo.camera.seller.username + " as soon as possible. "))
-    await context.bot.send_message(chat_id=paidOrders[i].purchaseInfo.camera.seller.id,
-                                   text=("@" + paidOrders[i].username + " has submitted their delivery information. Please use /manageorders and choose the delivery option.\n" +
-                                         paidOrders[i].type + " delivery required."))
+                                          + update.message.text + "\n\nPlease confirm if the information is accurate."),
+                                    reply_markup=InlineKeyboardMarkup(keyboard))
+    return DELIVERY_CONFIRMATION
+
+
+async def delivery_DeliveryInfoComplete (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    confirms the delivery information, and updates the user's DeliveryInfo class
+    """
+    query = update.callback_query
+    await query.answer()
+
+    paidOrders = manageorders.listOfPaidOrders
+    index = int((query.data.split())[1])
+    customerDeliveryInfo = manageorders.listOfPaidOrders[index]
 
     #add into deliveryOrders
-    manageorders.listOfDeliveryOrders.append(paidOrders[i])
+    manageorders.listOfDeliveryOrders.append(customerDeliveryInfo)
     #remove from paidOrders
-    manageorders.listOfPaidOrders.pop(i)
+    manageorders.listOfPaidOrders.pop(index)
 
+    await query.edit_message_text(text=("Delivery information has been sent! Please wait patiently for your order! If the delivery information is still incorrect, please message our seller @" + customerDeliveryInfo.purchaseInfo.camera.seller.username + " as soon as possible. "))
+    await context.bot.send_message(chat_id=customerDeliveryInfo.purchaseInfo.camera.seller.id,
+                                   text=("@" + customerDeliveryInfo.username + " has submitted their delivery information. Please use /manageorders and choose the delivery option.\n" +
+                                         customerDeliveryInfo.delivery_type + " delivery required."))
     return ConversationHandler.END
+

@@ -156,7 +156,9 @@ if __name__ == '__main__':
         entry_points=[CommandHandler('delivery', delivery_start)],
         states={
             DELIVERY_START: [CallbackQueryHandler(delivery_fillInInfo)],
-            DELIVERY_ASKING_INFO: [MessageHandler(filters.TEXT, delivery_confirmDeliveryInfo)]
+            DELIVERY_ASKING_INFO: [MessageHandler(filters.TEXT, delivery_confirmDeliveryInfo)],
+            DELIVERY_CONFIRMATION:[CallbackQueryHandler(delivery_fillInInfo, pattern="^no$"),
+                                  CallbackQueryHandler(delivery_DeliveryInfoComplete)]
         },
         fallbacks=[CommandHandler('cancel',manageOrders_cancel)]
     )
