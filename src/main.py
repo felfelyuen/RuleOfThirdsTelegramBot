@@ -18,7 +18,7 @@ from delivery import *
 #insert telegram token here
     #felix key: 8131399573:AAGYyedk735WuHa7SRcoxiKGx4lChQ7-0Vk
     #gab key: 7825728929:AAGXm4iEX14ly4fQo2GIpkv9ZRuLpRDgvPc
-TELEGRAM_TOKEN = '7028968855:AAGdZvw_--h3Juy_y9w8dWqRD4B7SpU-_9E'
+TELEGRAM_TOKEN = ''
 
 #configs basic logging
 logging.basicConfig(

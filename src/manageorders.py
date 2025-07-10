@@ -28,8 +28,8 @@ def setUpTestDeliveryOrders ():
  MANAGE_ORDER_DELIVERY_CHOOSECOURIER, MANAGEORDER_DELIVERY_REQUEST_CONFIRMATION, MANAGEORDER_DELIVERY_MAKEORDER) = range(6)
 
 #demo authentication key being used
-auth_key = "n7PFeTZjRT"
-api_key = "EP-GEsNV2OmJ"
+auth_key = ""
+api_key = ""
 #demo website being used
 domain = 'http://demo.connect.easyparcel.sg/?ac='
 
