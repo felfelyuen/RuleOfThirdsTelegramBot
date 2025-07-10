@@ -1,10 +1,9 @@
-import requests
 import logging
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
     ContextTypes,
     ConversationHandler)
-from camera import Camera
+from Camera import Camera
 
 import listings
 from listings import setUpTestListings
@@ -19,7 +18,7 @@ Where there are functions to let the buyer edit the listings by either
 '''
 
 #Using a test catalogue for now
-global catalogue
+
 catalogue = setUpTestListings()
 
 (EDIT_LISTING_START,
@@ -29,7 +28,7 @@ catalogue = setUpTestListings()
  DELETE_LISTING_CONFIRMATION
  ) = range(5)
 
-async def handlerEditListingStart (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def editListings_Start (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
     Handles the start of conversation of editing the listings
     """
@@ -48,7 +47,7 @@ ADD LISTING FUNCTIONS
 =========================================================================
 '''
 
-async def handlerAddListingStart (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def editListings_Add_Start (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
     Handles convo where seller has to choose which camera from the catalogue to add into the listing list.
     """
@@ -87,7 +86,7 @@ async def handlerAddListingStart (update: Update, context: ContextTypes.DEFAULT_
 
     return ADD_LISTING_CONFIRM
 
-async def handlerAddListingConfirmation (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def editListings_Add_Confirmation (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
     Handles asking how many cameras to add into the listing
     """
@@ -108,7 +107,7 @@ async def handlerAddListingConfirmation (update: Update, context: ContextTypes.D
 
     return ADD_LISTING_SUCCESS
 
-async def handlerAddListingSuccess (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def editListings_Add_Success (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
     Handles the actual addition of the listing into the listing.
     """
@@ -140,7 +139,7 @@ DELETE LISTINGS FUNCTIONS
 =========================================================================
 '''
 
-async def handlerDeleteListingStart (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def editListings_Delete_Start (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
     Handles the start of deleting listing: asking which camera to delete off the listing
     """
@@ -162,7 +161,7 @@ async def handlerDeleteListingStart (update: Update, context: ContextTypes.DEFAU
                                   reply_markup=InlineKeyboardMarkup(keyboard))
     return DELETE_LISTING_CHOSEN
 
-async def handlerDeleteConfirmation (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def editListings_Delete_Confirmation (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
     Handles confirmation of listing deletion.
     If pressed no, it will go back to before.
@@ -181,7 +180,7 @@ async def handlerDeleteConfirmation (update: Update, context: ContextTypes.DEFAU
                                   reply_markup=InlineKeyboardMarkup(keyboard))
     return DELETE_LISTING_CONFIRMATION
 
-async def handlerDeleteSuccess (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def editListings_Delete_Success (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
     Handles actual deletion of the listing.
     """
@@ -195,7 +194,7 @@ async def handlerDeleteSuccess (update: Update, context: ContextTypes.DEFAULT_TY
     await query.edit_message_text(text="Listing: \"" + indexCamera.name + "\" has been removed from the listing.")
     return ConversationHandler.END
 
-async def handlerEditListingCancel (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def editListings_Cancel (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
     Fallback if the user decides to cancel halfway.
     """

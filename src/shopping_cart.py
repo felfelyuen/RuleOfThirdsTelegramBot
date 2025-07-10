@@ -1,21 +1,21 @@
 import logging
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, InputMedia, InputMediaPhoto
+from telegram.constants import InputMediaType
 from telegram.ext import ContextTypes, ConversationHandler
-from camera import Camera
-from purchase_info import PurchaseInfo
 import listings
 from HashMap import HashMap
-from cart import Cart
+from Cart import Cart
+import manageorders
+from DeliveryInfo import DeliveryInfo
 
 (CART_EDIT,
  CART_REMOVE_CONFIRM, CART_REMOVE_COMPLETE,
  CART_CLEAR_COMPLETE,
  CART_PAY_CONFIRM, CART_PAY_WAITING_PAYMENT) = range(6)
 
-global customerCarts
 customerCarts = HashMap()
-global pendingPaymentCustomersList
 pendingPaymentCustomersList = []
+og_message_id = ""
 
 def printPurchaseInfo (i, info):
     message = ("==================================\n" +
@@ -37,7 +37,7 @@ def printCart (cart):
         i += 1
     return listOfCameras, totalPrice
 
-async def handlerCartStart (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def cart_Start (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
     Displays the shopping cart to the user.
     """
@@ -60,11 +60,11 @@ async def handlerCartStart (update: Update, context: ContextTypes.DEFAULT_TYPE) 
     message = ("Here is your shopping cart!\n\n" +
                listOfCameras +
                "Total Price: " +str(totalPrice) + "\n" +
-               "==================================\n" +
-               "use /checkout to pay")
-    keyboard = [#[InlineKeyboardButton("Remove item from cart", callback_data='remove')], #cart is only one item per time hence
-                [InlineKeyboardButton("Clear cart", callback_data="clear")],
-                [InlineKeyboardButton("Pay and checkout", callback_data="checkout")]]
+               "==================================\n")
+    keyboard = [[InlineKeyboardButton("Pay and checkout", callback_data="checkout")],
+                [InlineKeyboardButton("Clear cart", callback_data="clear")]
+                #,[InlineKeyboardButton("Remove item from cart", callback_data='remove')] #cart is only one item per time hence this line is commented out
+                ]
     await context.bot.send_message(chat_id=update.effective_chat.id,
                                    text=message,
                                    reply_markup=InlineKeyboardMarkup(keyboard))
@@ -75,7 +75,7 @@ async def handlerCartStart (update: Update, context: ContextTypes.DEFAULT_TYPE) 
 REMOVE CART ITEM FUNCTIONS
 =========================================================================
 '''
-async def handlerCartRemoveItem (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def cart_RemoveItem (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
     Asks the user which item to remove (item must be removed one at a time)
     """
@@ -100,7 +100,7 @@ async def handlerCartRemoveItem (update: Update, context: ContextTypes.DEFAULT_T
                                   reply_markup=InlineKeyboardMarkup(keyboard))
     return CART_REMOVE_CONFIRM
 
-async def handlerCartRemoveConfirm (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def cart_Remove_Confirm (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
     Asks the user to confirm removal of that camera
     """
@@ -123,7 +123,7 @@ async def handlerCartRemoveConfirm (update: Update, context: ContextTypes.DEFAUL
                                   reply_markup=InlineKeyboardMarkup(keyboard))
     return CART_REMOVE_COMPLETE
 
-async def handlerCartRemoveComplete (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def cart_Remove_Complete (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
     await query.answer()
 
@@ -150,7 +150,10 @@ CLEAR CART FUNCTIONS
 =========================================================================
 '''
 
-async def handlerCartClearConfirm (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def cart_Clear_Confirm (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Asks user to confirm clearing their cart
+    """
     query = update.callback_query
     await query.answer()
 
@@ -168,7 +171,10 @@ async def handlerCartClearConfirm (update: Update, context: ContextTypes.DEFAULT
                                   reply_markup=InlineKeyboardMarkup(keyboard))
     return CART_CLEAR_COMPLETE
 
-async def handlerCartClearComplete (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def cart_Clear_Complete (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Clears the cart for the buyer.
+    """
     query = update.callback_query
     await query.answer()
 
@@ -187,7 +193,7 @@ async def handlerCartClearComplete (update: Update, context: ContextTypes.DEFAUL
 PAY AND DELIVERY FUNCTIONS
 =========================================================================
 '''
-async def handlerCartPayConfirmationPage (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def cart_Pay_Confirm (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
     Asks user to confirm payment
     """
@@ -203,14 +209,14 @@ async def handlerCartPayConfirmationPage (update: Update, context: ContextTypes.
     message = ("Please confirm order before proceeding with checkout :)\n\n" +
                listOfCameras + "\n" +
                "Total price: " + str(totalPrice))
-    keyboard = [[InlineKeyboardButton("yes", callback_data="Y"),
+    keyboard = [[InlineKeyboardButton("Yes", callback_data="Y"),
                  InlineKeyboardButton("No (go back)", callback_data="back")]]
 
     await query.edit_message_text(text= message,
                                   reply_markup=InlineKeyboardMarkup(keyboard))
     return CART_PAY_CONFIRM
 
-async def handlerCartPay_ChooseDelivery (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def cart_Pay_ChooseDelivery (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
     sends message asking to paynow to this phone number
     and then asks them if they want delivery
@@ -243,13 +249,16 @@ async def handlerCartPay_ChooseDelivery (update: Update, context: ContextTypes.D
                 [InlineKeyboardButton("normal delivery (3-5 days)", callback_data="delivery")],
                 [InlineKeyboardButton("pick-up", callback_data="pick-up")]]
 
+
     #ask what delivery they want
-    await context.bot.send_message(chat_id=update.effective_chat.id,
+    new_message = await context.bot.send_message(chat_id=update.effective_chat.id,
                                    text="Please choose your delivery option:\n(Payment to be made after delivery choice is chosen)",
                                    reply_markup=InlineKeyboardMarkup(keyboard))
+    global og_message_id
+    og_message_id = new_message.id
     return CART_PAY_WAITING_PAYMENT
 
-async def handlerCartPay_Pickup (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def cart_Pay_Pickup (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
     the user wants pick-up
     """
@@ -264,17 +273,25 @@ async def handlerCartPay_Pickup (update: Update, context: ContextTypes.DEFAULT_T
     userCamera = userCart[0] #only one camera per transaction
     listOfCameras, totalPrice = printCart(userCart)
 
+    #inform sellers
+    newDeliveryInfo = DeliveryInfo(telegramID, update.effective_chat.username, "", "", "", "", "", 'pickup', listOfCameras, userCamera, totalPrice, "", "")
+    manageorders.listOfUnpaidOrders.append(newDeliveryInfo)
+
     await context.bot.send_message(chat_id=update.effective_chat.id, #replace with seller's telegram id
                                    text="pick-up for @" + update.effective_chat.username + "\nOrder:\n" + listOfCameras)
 
-    await query.edit_message_text(text="The sellers has been notified. Please contact " + userCamera.camera.seller + "to work out the pick-up details.\n(We might not be able to message you due to your privacy settings)")
+    #inform buyers
+    await query.edit_message_text(text="The sellers has been notified. Please contact @" + userCamera.camera.seller.username + "to work out the pick-up details.\n(We might not be able to message you due to your privacy settings)")
 
     await context.bot.send_photo(chat_id=update.effective_chat.id,
-                                 caption="Additionally, send $" + str(totalPrice) + " to the number INSERTNUMBERHERE, or scan the paynow code\nScreenshot and send to " + userCamera.camera.seller + " as well.",
+                                 caption="Additionally, send $" + str(totalPrice) + " to the number " + userCamera.camera.seller.contactnumber + ", or scan the paynow code\nScreenshot and send to " + userCamera.camera.seller.username + " as well.",
                                  photo=open('../.idea/testpicture.png', 'rb'))
+
+    #remove cart
+    customerCarts.removeFromMap(userCartIndex)
     return ConversationHandler.END
 
-async def handlerCartPay_Delivery (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def cart_Pay_Delivery (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
     the user wants delivery (normal)
     """
@@ -288,31 +305,30 @@ async def handlerCartPay_Delivery (update: Update, context: ContextTypes.DEFAULT
 
     userCamera = userCart[0] #only one camera per transaction
     listOfCameras, totalPrice = printCart(userCart)
+
     #inform sellers
-    await context.bot.send_message(chat_id=update.effective_chat.id, #replace with seller's telegram id
-                                   text="Normal delivery for @" + update.effective_chat.username + "\nOrder:\n" + listOfCameras)
+    newDeliveryInfo = DeliveryInfo(telegramID, update.effective_chat.username, "", "", "", "", "", 'delivery', listOfCameras, userCamera, totalPrice, "", "")
+    manageorders.listOfUnpaidOrders.append(newDeliveryInfo)
 
-    '''
-    #version 1.1
-    #tell buyers to fill in
-    await query.edit_message_text(text=("The sellers has been notified. Please contact " + userCamera.camera.seller + " and send the following for delivery purposes:" +
-                                         "\n(We might not be able to message you due to your privacy settings)"))
-    await context.bot.send_message(chat_id=update.effective_chat.id,
-                                   text="DELIVERY INFO:\nName:\nPostal Code:\nAddress:\nUnit No:\nContact No:")
-    await context.bot.send_photo(chat_id=update.effective_chat.id,
-                                 caption="Additionally, send $" + str(totalPrice) + " to the number INSERTNUMBERHERE, or scan the paynow code\nScreenshot and send to " + userCamera.camera.seller + " as well.",
-                                 photo=open('testpicture.png', 'rb'))
-    '''
+    await context.bot.send_message(chat_id=userCamera.camera.seller.id,
+                                   text="Normal delivery for @" + update.effective_chat.username + "\nOrder:\n" + listOfCameras + "\nPlease use /manageorders when payment comes through.")
+    #inform buyers
+    global og_message_id
+    with open('../.idea/testpicture.png', 'rb') as photo_file:
+        newPhoto = InputMediaPhoto(media=photo_file, caption="The sellers have been notified, please paynow $" + str(totalPrice) + " to the number " + userCamera.camera.seller.contactnumber + ", or scan the paynow code.\n" +
+                                                             "Screenshot proof of payment and send it to @" + userCamera.camera.seller.username + "\n" +
+                                                             "Delivery information will be processed after payment is verified.")
 
-    #version 1.2
-    await context.bot.send_photo(chat_id=update.effective_chat.id,
-                                 caption=("The sellers have been notified, please paynow $" + str(totalPrice) + " to the number INSERTNUMBERHERE, or scan the paynow code.\n" +
-                                          "Screenshot proof of payment and send it to " + userCamera.camera.seller + "\n" +
-                                          "Delivery information will be processed after payment is verified."),
-                                 photo=open('../.idea/testpicture.png', 'rb'))
+        await context.bot.edit_message_media(chat_id=update.effective_chat.id,
+                                             message_id=og_message_id,
+                                             media=newPhoto)
+    og_message_id = ""
+
+    #remove cart
+    customerCarts.removeFromMap(userCartIndex)
     return ConversationHandler.END
 
-async def handlerCartPay_Asap (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def cart_Pay_Asap (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
     the user wants delivery (normal)
     """
@@ -328,36 +344,32 @@ async def handlerCartPay_Asap (update: Update, context: ContextTypes.DEFAULT_TYP
     listOfCameras, totalPrice = printCart(userCart)
 
     totalPrice += 5
+
     #inform sellers
-    await context.bot.send_message(chat_id=update.effective_chat.id, #replace with seller's telegram id
-                                   text="ASAP delivery for @" + update.effective_chat.username + "\nOrder:\n" + listOfCameras)
+    newDeliveryInfo = DeliveryInfo(telegramID, update.effective_chat.username, "", "", "", "", "", 'asap', listOfCameras, userCamera, totalPrice, "", "")
+    manageorders.listOfUnpaidOrders.append(newDeliveryInfo)
 
-    #tell buyers to fill in
-    '''
-    #version 1.1
-    await query.edit_message_text(text=("The sellers has been notified. Please contact " + userCamera.camera.seller + " and send the following for delivery purposes:" +
-                                        "\n(We might not be able to message you due to your privacy settings)"))
-    await context.bot.send_message(chat_id=update.effective_chat.id,
-                                   text="DELIVERY INFO:\nName:\nPostal Code:\nAddress:\nUnit No:\nContact No:")
-    await context.bot.send_photo(chat_id=update.effective_chat.id,
-                                 caption=("Additionally, send $" + str(totalPrice) + " to the number INSERTNUMBERHERE, or scan the paynow code\n" +
-                                          "Screenshot and send to " + userCamera.camera.seller + " as well.\n" +
-                                          "Do note that delivery will not start without the screenshot."),
-                                 photo=open('testpicture.png', 'rb'))
-    '''
+    await context.bot.send_message(chat_id=userCamera.camera.seller.id,
+                                   text="ASAP delivery for @" + update.effective_chat.username + "\nOrder:\n" + listOfCameras + "\nPlease use /manageorders when payment comes through.")
 
-    #version 1.2
-    await context.bot.send_photo(chat_id=update.effective_chat.id,
-                                 caption=("The sellers have been notified, please paynow $" + str(totalPrice) + " to the number INSERTNUMBERHERE, or scan the paynow code.\n" +
-                                          "Screenshot proof of payment and send it to " + userCamera.camera.seller + "\n" +
-                                          "Delivery information will be processed after payment is verified."),
-                                 photo=open('../.idea/testpicture.png', 'rb'))
+    #inform buyers
+    global og_message_id
+    with open('../.idea/testpicture.png', 'rb') as photo_file:
+        newPhoto = InputMediaPhoto(media=photo_file, caption="The sellers have been notified, please paynow $" + str(totalPrice) + " to the number " + userCamera.camera.seller.contactnumber + ", or scan the paynow code.\n" +
+                                                             "Screenshot proof of payment and send it to @" + userCamera.camera.seller.username + "\n" +
+                                                             "Delivery information will be processed after payment is verified.")
+        await context.bot.edit_message_media(chat_id=update.effective_chat.id,
+                                             message_id=og_message_id,
+                                             media=newPhoto)
+    og_message_id = ""
 
+    #remove cart
+    customerCarts.removeFromMap(userCartIndex)
     return ConversationHandler.END
 
 async def handlerCartCancel (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
-    Handles the conversation if the user cancels and it will exit the conversation and the listings mode
+    Handles the conversation if the user cancels, and it will exit the conversation and the listings mode
     """
     await context.bot.send_message(
         chat_id=update.effective_chat.id,

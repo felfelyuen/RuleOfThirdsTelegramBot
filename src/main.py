@@ -10,8 +10,10 @@ from telegram.ext import (
 from login import get_user_role
 from handleQuestion import *
 from listings import *
-from buyer_listings import *
+from seller_listings import *
 from shopping_cart import *
+from manageorders import *
+from delivery import *
 
 #insert telegram token here
     #felix key: 8131399573:AAGYyedk735WuHa7SRcoxiKGx4lChQ7-0Vk
@@ -60,7 +62,7 @@ async def handlerUnknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id=update.effective_chat.id,
         text="Sorry, I didn't understand that command.")
 
-async def handlerQuestionShowFAQ(update:Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def handlerQuestionShowFAQ(update:Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
     shows FAQs
     """
@@ -79,55 +81,86 @@ if __name__ == '__main__':
     FAQ_handler = CommandHandler('FAQ', handlerQuestionShowFAQ)
 
     listing_handler = ConversationHandler(
-        entry_points=[CommandHandler('listings', handlerListingStart)],
+        entry_points=[CommandHandler('listings', listings_Start)],
         states={
-            LISTING_CHOOSE_CAMERA: [CallbackQueryHandler(handlerListingChoosing)],
-            LISTING_AFTERCHOSEN: [CallbackQueryHandler(handlerListingStart, pattern="^back$"),
-                                  CallbackQueryHandler(handlerListing_Enquiry, pattern="qn"),
-                                  CallbackQueryHandler(handlerListingBuying_ChooseCharm)],
-            LISTING_BUYING_ADDON: [CallbackQueryHandler(handlerListingChoosing, pattern = "back"),
-                                   CallbackQueryHandler(handlerListingBuying_ChooseAddOns)],
-            LISTING_BUYING_CONFIRMATION: [CallbackQueryHandler(handlerListingBuying_ChooseCharm, pattern ="back"),
-                                          CallbackQueryHandler(handlerListingBuying_Confirmation)],
-            LISTING_BUYING_ADDEDTOCART: [CallbackQueryHandler(handlerListingBuying_AddedToCart, pattern="^yes$"),
-                                         CallbackQueryHandler(handlerListingBuying_ChooseAddOns)]
+            LISTING_CHOOSE_CAMERA: [CallbackQueryHandler(listings_Choosing)],
+            LISTING_AFTERCHOSEN: [CallbackQueryHandler(listings_Start, pattern="^back$"),
+                                  CallbackQueryHandler(listings_Enquiry, pattern="qn"),
+                                  CallbackQueryHandler(listings_Buying_ChooseCharm)],
+            LISTING_BUYING_ADDON: [CallbackQueryHandler(listings_Choosing, pattern = "back"),
+                                   CallbackQueryHandler(listings_Buying_ChooseAddOns)],
+            LISTING_BUYING_CONFIRMATION: [CallbackQueryHandler(listings_Buying_ChooseCharm, pattern ="back"),
+                                          CallbackQueryHandler(listings_Buying_Confirmation)],
+            LISTING_BUYING_ADDEDTOCART: [CallbackQueryHandler(listings_Buying_AddedToCart, pattern="^yes$"),
+                                         CallbackQueryHandler(listings_Buying_ChooseAddOns)]
         },
-        fallbacks=[CommandHandler('cancel', handlerListingFallback)]
+        fallbacks=[CommandHandler('cancel', listings_Fallback)]
     )
 
     editListings_handler = ConversationHandler(
-        entry_points=[CommandHandler('editlistings', handlerEditListingStart)],
+        entry_points=[CommandHandler('editlistings', editListings_Start)],
         states={
-            EDIT_LISTING_START: [CallbackQueryHandler(handlerAddListingStart, pattern="^add$"),
-                                 CallbackQueryHandler(handlerDeleteListingStart, pattern="^delete$")],
-            ADD_LISTING_CONFIRM: [CallbackQueryHandler(handlerAddListingConfirmation)],
-            ADD_LISTING_SUCCESS: [CallbackQueryHandler(handlerAddListingSuccess, pattern = "Y"),
-                                  CallbackQueryHandler(handlerAddListingStart, pattern="N")],
-            DELETE_LISTING_CHOSEN: [CallbackQueryHandler(handlerDeleteConfirmation)],
-            DELETE_LISTING_CONFIRMATION: [CallbackQueryHandler(handlerDeleteListingStart, pattern="N"),
-                                          CallbackQueryHandler(handlerDeleteSuccess, pattern="Y")]
+            EDIT_LISTING_START: [CallbackQueryHandler(editListings_Add_Start, pattern="^add$"),
+                                 CallbackQueryHandler(editListings_Delete_Start, pattern="^delete$")],
+            ADD_LISTING_CONFIRM: [CallbackQueryHandler(editListings_Add_Confirmation)],
+            ADD_LISTING_SUCCESS: [CallbackQueryHandler(editListings_Add_Success, pattern = "Y"),
+                                  CallbackQueryHandler(editListings_Add_Start, pattern="N")],
+            DELETE_LISTING_CHOSEN: [CallbackQueryHandler(editListings_Delete_Confirmation)],
+            DELETE_LISTING_CONFIRMATION: [CallbackQueryHandler(editListings_Delete_Start, pattern="N"),
+                                          CallbackQueryHandler(editListings_Delete_Success, pattern="Y")]
         },
-        fallbacks=[CommandHandler('cancel', handlerEditListingCancel)]
+        fallbacks=[CommandHandler('cancel', editListings_Cancel)]
     )
 
     cart_handler = ConversationHandler(
-        entry_points=[CommandHandler('cart', handlerCartStart)],
+        entry_points=[CommandHandler('cart', cart_Start)],
         states={
-            CART_EDIT: [CallbackQueryHandler(handlerCartRemoveItem, pattern="^remove$"),
-                        CallbackQueryHandler(handlerCartClearConfirm, pattern="^clear$"),
-                        CallbackQueryHandler(handlerCartPayConfirmationPage, pattern="^checkout$")],
-            CART_REMOVE_CONFIRM: [CallbackQueryHandler(handlerCartRemoveConfirm)],
-            CART_REMOVE_COMPLETE: [CallbackQueryHandler(handlerCartRemoveItem, pattern="^back$"),
-                                CallbackQueryHandler(handlerCartRemoveComplete)],
-            CART_CLEAR_COMPLETE: [CallbackQueryHandler(handlerCartStart, pattern="^back$"),
-                                  CallbackQueryHandler(handlerCartClearComplete)],
-            CART_PAY_CONFIRM: [CallbackQueryHandler(handlerCartStart, pattern="^back$"),
-                               CallbackQueryHandler(handlerCartPay_ChooseDelivery)],
-            CART_PAY_WAITING_PAYMENT: [CallbackQueryHandler(handlerCartPay_Pickup, pattern="^pick-up$"),
-                                       CallbackQueryHandler(handlerCartPay_Delivery, pattern="^delivery$"),
-                                       CallbackQueryHandler(handlerCartPay_Asap, pattern="^ASAP$")]
+            CART_EDIT: [CallbackQueryHandler(cart_RemoveItem, pattern="^remove$"),
+                        CallbackQueryHandler(cart_Clear_Confirm, pattern="^clear$"),
+                        CallbackQueryHandler(cart_Pay_Confirm, pattern="^checkout$")],
+            CART_REMOVE_CONFIRM: [CallbackQueryHandler(cart_Remove_Confirm)],
+            CART_REMOVE_COMPLETE: [CallbackQueryHandler(cart_RemoveItem, pattern="^back$"),
+                                CallbackQueryHandler(cart_Remove_Complete)],
+            CART_CLEAR_COMPLETE: [CallbackQueryHandler(cart_Start, pattern="^back$"),
+                                  CallbackQueryHandler(cart_Clear_Complete)],
+            CART_PAY_CONFIRM: [CallbackQueryHandler(cart_Start, pattern="^back$"),
+                               CallbackQueryHandler(cart_Pay_ChooseDelivery)],
+            CART_PAY_WAITING_PAYMENT: [CallbackQueryHandler(cart_Pay_Pickup, pattern="^pick-up$"),
+                                       CallbackQueryHandler(cart_Pay_Delivery, pattern="delivery"),
+                                       CallbackQueryHandler(cart_Pay_Asap, pattern="ASAP")]
         },
         fallbacks=[CommandHandler('cancel',handlerCartCancel)]
+    )
+
+    manageorders_handler = ConversationHandler(
+        entry_points=[CommandHandler('manageorders', manageOrders_Start)],
+        states={
+            MANAGEORDER_START: [CallbackQueryHandler(manageOrders_verifyPayment_listCustomers, pattern="^verify$"),
+                                 CallbackQueryHandler(manageOrders_sendParcel_listCustomers, pattern="^send$")],
+            MANAGEORDER_PAYMENT_CONFIRMATION: [CallbackQueryHandler(manageOrders_Start, pattern="^back$"),
+                                                CallbackQueryHandler(manageOrders_verifyPayment_Confirmation)],
+            MANAGEORDER_PAYMENT_DELIVERYINFOASKED: [CallbackQueryHandler(manageOrders_verifyPayment_listCustomers, pattern="^back$"),
+                                               CallbackQueryHandler(manageOrders_askCustomerForDeliveryInfo)],
+            MANAGE_ORDER_DELIVERY_CHOOSECOURIER:[CallbackQueryHandler(manageOrders_Start, pattern="^back$"),
+                                                 CallbackQueryHandler(manageOrders_sendParcel_getRate_listCouriers)],
+            MANAGEORDER_DELIVERY_REQUEST_CONFIRMATION: [CallbackQueryHandler(manageOrders_sendParcel_listCustomers, pattern="^back$"),
+                                                        CallbackQueryHandler(manageOrders_sendParcel_getRate_confirmation)],
+            MANAGEORDER_DELIVERY_MAKEORDER:[CallbackQueryHandler(manageOrders_sendParcel_getRate_listCouriers, pattern="back"),
+                                            CallbackQueryHandler(manageOrders_sendParcel_makeOrder)]
+
+        },
+        fallbacks=[CommandHandler('cancel',manageOrders_cancel)]
+    )
+
+    delivery_handler = ConversationHandler(
+        entry_points=[CommandHandler('delivery', delivery_start)],
+        states={
+            DELIVERY_START: [CallbackQueryHandler(delivery_fillInInfo)],
+            DELIVERY_ASKING_INFO: [MessageHandler(filters.TEXT, delivery_confirmDeliveryInfo)],
+            DELIVERY_CONFIRMATION:[CallbackQueryHandler(delivery_fillInInfo, pattern="^no$"),
+                                  CallbackQueryHandler(delivery_DeliveryInfoComplete)]
+        },
+        fallbacks=[CommandHandler('cancel',manageOrders_cancel)]
     )
     #add commands
     application.add_handler(start_handler)
@@ -135,7 +168,8 @@ if __name__ == '__main__':
     application.add_handler(listing_handler)
     application.add_handler(editListings_handler)
     application.add_handler(cart_handler)
-
+    application.add_handler(manageorders_handler)
+    application.add_handler(delivery_handler)
 
     #default commands (do not put unknown_handler above other handlers)
     application.add_handler(unknown_handler)

@@ -8,7 +8,7 @@ from telegram.ext import (
     CommandHandler,
     MessageHandler, ConversationHandler)
 
-QUESTION_START = range(1)
+QUESTION_START, QUESTION_CANCEL = range(2)
 
 async def handlerQuestionStart(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
