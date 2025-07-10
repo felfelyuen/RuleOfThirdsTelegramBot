@@ -1,10 +1,8 @@
 import logging
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, InputMedia, InputMediaPhoto
-from telegram.constants import InputMediaType
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, InputMediaPhoto
 from telegram.ext import ContextTypes, ConversationHandler
 import listings
 from HashMap import HashMap
-from Cart import Cart
 import manageorders
 from DeliveryInfo import DeliveryInfo
 
@@ -15,7 +13,6 @@ from DeliveryInfo import DeliveryInfo
 
 customerCarts = HashMap()
 pendingPaymentCustomersList = []
-og_message_id = ""
 
 def printPurchaseInfo (i, info):
     message = ("==================================\n" +
@@ -182,6 +179,16 @@ async def cart_Clear_Complete (update: Update, context: ContextTypes.DEFAULT_TYP
     global customerCarts
     userCartIndex = customerCarts.findCartIndex(telegramID)
 
+
+
+    #let other people in the queue know:
+    userCart = customerCarts.list[userCartIndex].cart
+    indexCamera = userCart[0].camera
+    indexCamera.queue.pop(0)
+    i = 0
+    logging.info("user exited queue, informing next person in queue")
+    await context.bot.send_message(chat_id=indexCamera.queue[0], text="Good News! You have been bumped to the front of the queue for the camera \"" + indexCamera.name + "\". Please place an order and checkout within 5 minutes, or else you will be removed from the queue.")
+
     #remove cart from hash map because it is empty now
     customerCarts.removeFromMap(userCartIndex)
 
@@ -230,8 +237,14 @@ async def cart_Pay_ChooseDelivery (update: Update, context: ContextTypes.DEFAULT
     userCart = customerCarts.list[userCartIndex].cart
 
     listOfCameras, totalPrice = printCart(userCart)
+
     #REMOVE LISTING
     indexCamera = userCart[0].camera
+    #let other people in the queue know
+    indexCamera.queue.pop(0) #remove the first person(the current buyer)
+    for teleID in indexCamera.queue:
+        await context.bot.send_message(chat_id=teleID, text="Unfortunately, someone else has bought the camera \"" + indexCamera.name + "\". :/")
+    #remove listing fr
     i = 0
     while i < len(listings.listings):
         if listings.listings[i].name == indexCamera.name:
@@ -245,8 +258,8 @@ async def cart_Pay_ChooseDelivery (update: Update, context: ContextTypes.DEFAULT
                      listOfCameras)
     await query.edit_message_text(text=first_message)
 
-    keyboard = [[InlineKeyboardButton("ASAP delivery (1-2 days) ($5 more)", callback_data="ASAP")],
-                [InlineKeyboardButton("normal delivery (3-5 days)", callback_data="delivery")],
+    keyboard = [[InlineKeyboardButton("ASAP delivery (1-2 days) ($5 more)", callback_data="ASAP delivery")],
+                [InlineKeyboardButton("normal delivery (3-5 days)", callback_data="normal delivery")],
                 [InlineKeyboardButton("pick-up", callback_data="pick-up")]]
 
 
@@ -254,14 +267,9 @@ async def cart_Pay_ChooseDelivery (update: Update, context: ContextTypes.DEFAULT
     new_message = await context.bot.send_message(chat_id=update.effective_chat.id,
                                    text="Please choose your delivery option:\n(Payment to be made after delivery choice is chosen)",
                                    reply_markup=InlineKeyboardMarkup(keyboard))
-    global og_message_id
-    og_message_id = new_message.id
     return CART_PAY_WAITING_PAYMENT
 
-async def cart_Pay_Pickup (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """
-    the user wants pick-up
-    """
+async def cart_Pay_Generic (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
     await query.answer()
 
@@ -274,94 +282,30 @@ async def cart_Pay_Pickup (update: Update, context: ContextTypes.DEFAULT_TYPE) -
     listOfCameras, totalPrice = printCart(userCart)
 
     #inform sellers
-    newDeliveryInfo = DeliveryInfo(telegramID, update.effective_chat.username, "", "", "", "", "", 'pickup', listOfCameras, userCamera, totalPrice, "", "")
+    newDeliveryInfo = DeliveryInfo(telegramID, update.effective_chat.username, "", "", "", "", "", query.data, listOfCameras, userCamera, totalPrice, "", "")
     manageorders.listOfUnpaidOrders.append(newDeliveryInfo)
 
-    await context.bot.send_message(chat_id=update.effective_chat.id, #replace with seller's telegram id
-                                   text="pick-up for @" + update.effective_chat.username + "\nOrder:\n" + listOfCameras)
+    await context.bot.send_message(chat_id=userCamera.camera.seller.id, #replace with seller's telegram id
+                                   text=query.data + " for @" + update.effective_chat.username + "\nOrder:\n" + listOfCameras)
 
     #inform buyers
-    await query.edit_message_text(text="The sellers has been notified. Please contact @" + userCamera.camera.seller.username + "to work out the pick-up details.\n(We might not be able to message you due to your privacy settings)")
+    if query.data == "pick-up":
+        await query.edit_message_text(text="The sellers has been notified. Please contact @" +
+                                           userCamera.camera.seller.username +
+                                           "to work out the pick-up details.\n(We might not be able to message you due to your privacy settings)")
+        await context.bot.send_photo(chat_id=update.effective_chat.id,
+                                     caption="Additionally, send $" + str(totalPrice) + " to the number " + userCamera.camera.seller.contactnumber +
+                                             ", or scan the paynow code\nScreenshot and send to " + userCamera.camera.seller.username + " as well.",
+                                     photo=open('../.idea/testpicture.png', 'rb'))
+    else:
+        if query.data == "ASAP delivery":
+            totalPrice += 5
 
-    await context.bot.send_photo(chat_id=update.effective_chat.id,
-                                 caption="Additionally, send $" + str(totalPrice) + " to the number " + userCamera.camera.seller.contactnumber + ", or scan the paynow code\nScreenshot and send to " + userCamera.camera.seller.username + " as well.",
-                                 photo=open('../.idea/testpicture.png', 'rb'))
-
-    #remove cart
-    customerCarts.removeFromMap(userCartIndex)
-    return ConversationHandler.END
-
-async def cart_Pay_Delivery (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """
-    the user wants delivery (normal)
-    """
-    query = update.callback_query
-    await query.answer()
-
-    telegramID = update.effective_chat.id
-    global customerCarts
-    userCartIndex = customerCarts.findCartIndex(telegramID)
-    userCart = customerCarts.list[userCartIndex].cart
-
-    userCamera = userCart[0] #only one camera per transaction
-    listOfCameras, totalPrice = printCart(userCart)
-
-    #inform sellers
-    newDeliveryInfo = DeliveryInfo(telegramID, update.effective_chat.username, "", "", "", "", "", 'delivery', listOfCameras, userCamera, totalPrice, "", "")
-    manageorders.listOfUnpaidOrders.append(newDeliveryInfo)
-
-    await context.bot.send_message(chat_id=userCamera.camera.seller.id,
-                                   text="Normal delivery for @" + update.effective_chat.username + "\nOrder:\n" + listOfCameras + "\nPlease use /manageorders when payment comes through.")
-    #inform buyers
-    global og_message_id
-    with open('../.idea/testpicture.png', 'rb') as photo_file:
-        newPhoto = InputMediaPhoto(media=photo_file, caption="The sellers have been notified, please paynow $" + str(totalPrice) + " to the number " + userCamera.camera.seller.contactnumber + ", or scan the paynow code.\n" +
-                                                             "Screenshot proof of payment and send it to @" + userCamera.camera.seller.username + "\n" +
-                                                             "Delivery information will be processed after payment is verified.")
-
-        await context.bot.edit_message_media(chat_id=update.effective_chat.id,
-                                             message_id=og_message_id,
-                                             media=newPhoto)
-    og_message_id = ""
-
-    #remove cart
-    customerCarts.removeFromMap(userCartIndex)
-    return ConversationHandler.END
-
-async def cart_Pay_Asap (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """
-    the user wants delivery (normal)
-    """
-    query = update.callback_query
-    await query.answer()
-
-    telegramID = update.effective_chat.id
-    global customerCarts
-    userCartIndex = customerCarts.findCartIndex(telegramID)
-    userCart = customerCarts.list[userCartIndex].cart
-
-    userCamera = userCart[0] #only one camera per transaction
-    listOfCameras, totalPrice = printCart(userCart)
-
-    totalPrice += 5
-
-    #inform sellers
-    newDeliveryInfo = DeliveryInfo(telegramID, update.effective_chat.username, "", "", "", "", "", 'asap', listOfCameras, userCamera, totalPrice, "", "")
-    manageorders.listOfUnpaidOrders.append(newDeliveryInfo)
-
-    await context.bot.send_message(chat_id=userCamera.camera.seller.id,
-                                   text="ASAP delivery for @" + update.effective_chat.username + "\nOrder:\n" + listOfCameras + "\nPlease use /manageorders when payment comes through.")
-
-    #inform buyers
-    global og_message_id
-    with open('../.idea/testpicture.png', 'rb') as photo_file:
-        newPhoto = InputMediaPhoto(media=photo_file, caption="The sellers have been notified, please paynow $" + str(totalPrice) + " to the number " + userCamera.camera.seller.contactnumber + ", or scan the paynow code.\n" +
-                                                             "Screenshot proof of payment and send it to @" + userCamera.camera.seller.username + "\n" +
-                                                             "Delivery information will be processed after payment is verified.")
-        await context.bot.edit_message_media(chat_id=update.effective_chat.id,
-                                             message_id=og_message_id,
-                                             media=newPhoto)
-    og_message_id = ""
+        with open('../.idea/testpicture.png', 'rb') as photo_file:
+            newPhoto = InputMediaPhoto(media=photo_file, caption="The sellers have been notified, please paynow $" + str(totalPrice) + " to the number " + userCamera.camera.seller.contactnumber + ", or scan the paynow code.\n" +
+                                                                     "Screenshot proof of payment and send it to @" + userCamera.camera.seller.username + "\n" +
+                                                                     "Delivery information will be processed after payment is verified.")
+        await query.edit_message_media(media=newPhoto)
 
     #remove cart
     customerCarts.removeFromMap(userCartIndex)

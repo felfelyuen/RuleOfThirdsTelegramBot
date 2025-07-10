@@ -19,3 +19,6 @@ class Camera:
                         "Price: " + str(price) + "\n" +
                         "BUY IT NOW!\n" +
                         "Contact @" + seller.username + " for more information :)")
+
+        #queue for each camera to have, so that only one is sold at a time
+        self.queue = []

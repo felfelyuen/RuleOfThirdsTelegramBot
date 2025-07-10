@@ -125,9 +125,7 @@ if __name__ == '__main__':
                                   CallbackQueryHandler(cart_Clear_Complete)],
             CART_PAY_CONFIRM: [CallbackQueryHandler(cart_Start, pattern="^back$"),
                                CallbackQueryHandler(cart_Pay_ChooseDelivery)],
-            CART_PAY_WAITING_PAYMENT: [CallbackQueryHandler(cart_Pay_Pickup, pattern="^pick-up$"),
-                                       CallbackQueryHandler(cart_Pay_Delivery, pattern="delivery"),
-                                       CallbackQueryHandler(cart_Pay_Asap, pattern="ASAP")]
+            CART_PAY_WAITING_PAYMENT: [CallbackQueryHandler(cart_Pay_Generic)]
         },
         fallbacks=[CommandHandler('cancel',handlerCartCancel)]
     )

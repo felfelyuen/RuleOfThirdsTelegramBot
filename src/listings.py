@@ -93,7 +93,6 @@ async def listings_Enquiry (update: Update, context: ContextTypes.DEFAULT_TYPE) 
     await query.edit_message_text(text=("Please message the seller: @" + seller.username + " to ask your questions about this camera\.\n" +
                                         "\(We might not be able to message you due to your privacy settings\)\n\n" +
                                         "Alternatively, for general concerns, please visit the [link](https://docs.google.com/document/d/1v4ofc_tfiPyNuJWW-iOHLFUolAb5srZfnWqnke90Qlk/edit?tab=t.vhga5eeqazd4) below for our FAQ\!\n"
-                                        #+ "https://docs.google.com/document/d/1v4ofc_tfiPyNuJWW-iOHLFUolAb5srZfnWqnke90Qlk/edit?tab=t.vhga5eeqazd4"
                                         ),
                                   parse_mode="MarkdownV2",
                                   reply_markup=InlineKeyboardMarkup(keyboard))
@@ -125,14 +124,24 @@ async def listings_Buying_ChooseCharm (update: Update, context: ContextTypes.DEF
         #cart is found and is non-empty. terminate buying procedure:
         logging.info("non-empty cart found, terminating buying procedure")
         await context.bot.send_message(chat_id=telegramID,
-                                 text="There are still items in the cart, please buy cameras separately.\nFor group orders, please contact the sellers.")
+                                       text="There are still items in the cart, please buy cameras separately.\nFor group orders, please contact the sellers directly. Seller of this camera is @" + indexCamera.seller.username)
         global og_message_id
         og_message_id = ""
         return ConversationHandler.END
 
-    #nothing inside cart, can add into cart
-    logging.info("user has cart in index " + str(userCartIndex) )
+    #add user to queue, and check if user is at the first
+    if queryData[0] != "back":
+        indexCamera.queue.append(telegramID)
 
+    if indexCamera.queue[0] != telegramID:
+        #another user is currently purchasing, cannot proceed
+        logging.info("another user is purchasing, cannot proceed")
+        await context.bot.send_message(chat_id=telegramID,
+                                       text="Unfortunately, another user is currently purchasing this same product too. We will notify you if they are bumped off the queue. Thank you!")
+        return ConversationHandler.END
+
+    #nothing inside cart, can add into cart
+    logging.info("can add into cart for user")
     userPurchaseInfo = PurchaseInfo(telegramID, indexCamera, "", "", "")
     userIndex = customerPurchaseInfos.findCartIndex(telegramID)
     if userIndex != "NO_ITEM_FOUND":
@@ -145,7 +154,8 @@ async def listings_Buying_ChooseCharm (update: Update, context: ContextTypes.DEF
                        InlineKeyboardButton("Beaded", callback_data="Beaded " + cameraIndex),
                        InlineKeyboardButton('Go Back', callback_data="back " + cameraIndex)]]
     await query.edit_message_text(
-        text="Thank you for your interest!\n" 
+        text="Thank you for your interest!\n"
+             "Please checkout within 5 minutes or you will be bumped off the queue.\n" 
              "Please fill in the following!\n" 
              "Wrist strap variation?\n "
              "Use /cancel at any time to stop the procedure"
@@ -277,6 +287,7 @@ async def listings_Buying_AddedToCart (update: Update, context: ContextTypes.DEF
     shopping_cart.customerCarts = customerCarts
 
     #remove customer's purchase info from list
+
     customerPurchaseInfos.removeFromMap(userIndex)
     message = ("Camera has been added into your cart!\n"
                "Please use /cart to view your shopping cart and checkout to pay. :)")
@@ -293,6 +304,8 @@ async def listings_Fallback (update: Update, context: ContextTypes.DEFAULT_TYPE)
         chat_id=update.effective_chat.id,
         text="Exited Catalogue mode"
     )
+    #reset og_message_id
     global og_message_id
     og_message_id = ""
+
     return ConversationHandler.END
