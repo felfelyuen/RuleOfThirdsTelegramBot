@@ -12,7 +12,7 @@ from DeliveryInfo import DeliveryInfo
  CART_PAY_CONFIRM, CART_PAY_WAITING_PAYMENT) = range(6)
 
 customerCarts = HashMap()
-pendingPaymentCustomersList = []
+#pendingPaymentCustomersList = []
 
 def printPurchaseInfo (i, info):
     message = ("==================================\n" +
