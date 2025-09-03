@@ -41,18 +41,20 @@ async def handlerStart(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id=update.effective_chat.id,
         text="Welcome to Rule Of Thirds Messaging Bot!\n"
              "What would you like to do today?\n\n"
-                 "==================================\n"
-                 "/listings to view our listings and add to cart\n"
-                 "/cart to view your shopping cart and checkout\n"
-                 "/FAQ to view our FAQs\n"
-                 "==================================")
+             "==================================\n"
+             "/listings to view our listings and add to cart\n"
+             "/cart to view your shopping cart and checkout\n"
+             "/delivery to input delivery information (after payment is verified)"
+             "/FAQ to view our FAQs\n"
+             "==================================")
     else:
         #display seller menu
         await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="Welcome to Rule Of Thirds Messaging Bot! What would you like to do today?\n"+
              "/manageListings manage listings\n"
-             "/manageCatalogue manage catalogue")
+             "/manageCatalogue manage catalogue\n"
+             "/manageorders manage orders")
 
 async def handlerUnknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """

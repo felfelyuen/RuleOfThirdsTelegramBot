@@ -49,12 +49,23 @@ listOfShippedOrders = []
 #listOfRates is the list of rates obtained from querying EasyParcel
 listOfRates = []
 
+og_message_id=""
+
 async def manageOrders_Start (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     keyboard = [[InlineKeyboardButton("verify payment", callback_data="verify")],
                 [InlineKeyboardButton("send parcel to customer", callback_data="send")]]
-    await context.bot.send_message(chat_id= update.effective_chat.id,
-                                   text="What do you want to do today?",
-                                   reply_markup=InlineKeyboardMarkup(keyboard))
+
+    global og_message_id
+    if og_message_id == "":
+        newMessage = await context.bot.send_message(chat_id= update.effective_chat.id,
+                                                    text="What do you want to do today?",
+                                                    reply_markup=InlineKeyboardMarkup(keyboard))
+        og_message_id = newMessage.message_id
+    else:
+        await context.bot.edit_message_text(chat_id=update.effective_chat.id,
+                                            message_id=og_message_id,
+                                            text="What do you want to do today?",
+                                            reply_markup=InlineKeyboardMarkup(keyboard))
     return MANAGEORDER_START
 
 '''
@@ -134,6 +145,8 @@ async def manageOrders_askCustomerForDeliveryInfo (update: Update, context: Cont
     #tell buyer
     await context.bot.send_message(chat_id=indexOrder.id, text="Your payment has been verified! Please use /delivery to proceed with filling in your delivery information as soon as possible.")
 
+    global og_message_id
+    og_message_id = ""
     return ConversationHandler.END
 
 '''
@@ -402,6 +415,7 @@ async def manageOrders_sendParcel_makeOrder (update: Update, context: ContextTyp
         return ConversationHandler.END
 
     payment_result = res_2["result"][0]
+
     #handle insufficient credit
     if payment_result["messagenow"] != "Sufficient credit":
         await context.bot.edit_message_text(chat_id=update.effective_chat.id,
@@ -421,11 +435,17 @@ async def manageOrders_sendParcel_makeOrder (update: Update, context: ContextTyp
     await context.bot.edit_message_text(chat_id=update.effective_chat.id,
                                         message_id=payment_message.message_id,
                                         text=messageToSeller)
+
+    global og_message_id
+    og_message_id = ""
     return ConversationHandler.END
 
 async def manageOrders_cancel (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
     fallback for the conversation
     """
-    await update.message.reply_text(text="Manage Orders exited.")
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Manage Orders exited.")
+
+    global og_message_id
+    og_message_id = ""
     return ConversationHandler.END

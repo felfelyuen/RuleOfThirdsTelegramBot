@@ -102,3 +102,10 @@ async def delivery_DeliveryInfoComplete (update: Update, context: ContextTypes.D
                                          customerDeliveryInfo.delivery_type + " delivery required."))
     return ConversationHandler.END
 
+async def delivery_Cancel (update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    fallback for delivery conversation
+    """
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Delivery page exited.")
+
+    return ConversationHandler.END

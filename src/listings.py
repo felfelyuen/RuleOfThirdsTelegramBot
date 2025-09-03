@@ -22,6 +22,8 @@ customerPurchaseInfos = HashMap()
 
 og_message_id = ""
 
+CUSTOMER_CHECKOUT_TIMING = 60 * 8
+
 LISTING_START, LISTING_CHOOSE_CAMERA, LISTING_AFTERCHOSEN, LISTING_BUYING_ADDON, LISTING_BUYING_CONFIRMATION, LISTING_BUYING_ADDEDTOCART = range(6)
 
 async def listings_Start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -105,17 +107,18 @@ async def timeout_checkout (context: ContextTypes.DEFAULT_TYPE) -> None:
     #find the guy in the listings
     global listings
     for camera in listings:
-        if camera.queue[0] == indexTeleID:
+        if (len(camera.queue) > 0) & (camera.queue[0] == indexTeleID):
             #KICK HIM OUT
-            logging.info("PERSON HAS TO BE REMOVED FROM QUEUE: EXCEEDED 5 MINUTES")
+            logging.info("PERSON TO BE REMOVED FROM QUEUE: EXCEEDED 5 MINUTES")
             await context.bot.send_message(chat_id=indexTeleID, text="Unfortunately your 5 minutes is up. :/ Please checkout within the timing next time to avoid being booted off the queue.")
             camera.queue.pop(0)
             index = customerPurchaseInfos.findCartIndex(indexTeleID)
-            if index != "NO_INDEX_FOUND":
+            logging.info(index)
+            if index != "NO_ITEM_FOUND":
                 customerPurchaseInfos.removeFromMap(index)
             cartIndex = shopping_cart.customerCarts.findCartIndex(indexTeleID)
-            if cartIndex != "NO_INDEX_FOUND":
-                shopping_cart.customerCarts.removeFromMap(indexTeleID)
+            if cartIndex != "NO_ITEM_FOUND":
+                shopping_cart.customerCarts.removeFromMap(cartIndex)
             #inform the next person
             if len(camera.queue) != 0:
                 await context.bot.send_message(chat_id=camera.queue[0], text="Congratulations! You have been moved to the front of the queue. Please checkout with the item within 5 minutes to avoid being kicked off the queue.")
@@ -167,7 +170,8 @@ async def listings_Buying_ChooseCharm (update: Update, context: ContextTypes.DEF
     #start timer
     if queryData[0] != "back":
         logging.info("starting 5 minutes!")
-        context.job_queue.run_once(timeout_checkout, 5, chat_id=telegramID, data=5)
+        global CUSTOMER_CHECKOUT_TIMING
+        context.job_queue.run_once(timeout_checkout, CUSTOMER_CHECKOUT_TIMING, chat_id=telegramID, data=CUSTOMER_CHECKOUT_TIMING)
     #nothing inside cart, can add into cart
     logging.info("can add into cart for user")
     userPurchaseInfo = PurchaseInfo(telegramID, indexCamera, "", "", "")
@@ -330,7 +334,7 @@ async def listings_Fallback (update: Update, context: ContextTypes.DEFAULT_TYPE)
     """
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="Exited Catalogue mode"
+        text="Exited Catalogue mode.\nIf you were in a queue, do not worry, you are still in it."
     )
     #reset og_message_id
     global og_message_id
